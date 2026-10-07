@@ -106,24 +106,26 @@ export const GuidePage: React.FC<GuidePageProps> = ({ onStartTour }) => {
   return (
     <div className="space-y-8 animate-page-enter">
       {/* Banner */}
-      <div className="bg-gradient-to-r from-[#1E3A8A] to-[#2563EB] text-white rounded-3xl p-6 md:p-8 shadow-xl border border-blue-600 flex flex-col md:flex-row md:items-center justify-between gap-6">
-        <div className="space-y-2">
-          <div className="inline-flex items-center gap-2 px-3 py-1 bg-white/10 backdrop-blur-md rounded-full text-xs font-extrabold text-[#F59E0B] border border-white/20">
+      <div className="bg-gradient-to-r from-[#0A1118] via-[#0F6E56] to-[#0A4F3E] text-white rounded-3xl p-6 md:p-8 shadow-2xl border border-emerald-500/40 flex flex-col md:flex-row md:items-center justify-between gap-6 relative overflow-hidden">
+        <div className="absolute -top-10 -right-10 w-44 h-44 bg-[#F2A93B]/20 rounded-full blur-2xl pointer-events-none" />
+
+        <div className="space-y-2 relative z-10">
+          <div className="inline-flex items-center gap-2 px-3 py-1 bg-white/10 backdrop-blur-md rounded-full text-xs font-black text-[#F2A93B] border border-white/20">
             <BookOpen className="w-3.5 h-3.5" />
             <span>Plan complet du Quartier KoraDevs</span>
           </div>
           <h2 className="text-2xl md:text-3xl font-black tracking-tight text-white">Guide interactif des 13 fonctionnalités MVP</h2>
-          <p className="text-xs text-blue-100 max-w-xl font-medium">
-            Chaque fonctionnalité est reliée de bout en bout et immédiatement utilisable sur la plateforme.
+          <p className="text-xs text-emerald-100 max-w-xl font-medium">
+            Chaque fonctionnalité est interconnectée et vérifiable de bout en bout sur la plateforme.
           </p>
         </div>
 
         <button
           onClick={onStartTour}
-          className="btn-primary bg-[#F59E0B] hover:bg-amber-500 text-slate-950 font-black text-xs py-3 px-6 shadow-lg border-0 shrink-0"
+          className="btn-amber py-3 px-6 text-xs font-black shrink-0 relative z-10 shadow-glow-amber"
         >
-          <Sparkles className="w-4 h-4 text-slate-950" />
-          <span>Lancer la visite guidée (5 infobulles)</span>
+          <Sparkles className="w-4 h-4 text-white" />
+          <span>Lancer la visite guidée (5 étapes)</span>
         </button>
       </div>
 
@@ -137,7 +139,7 @@ export const GuidePage: React.FC<GuidePageProps> = ({ onStartTour }) => {
             >
               <div className="space-y-3">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-2xl bg-[#EFF6FF] text-[#2563EB] border border-blue-200 flex items-center justify-center shrink-0">
+                  <div className="w-11 h-11 rounded-2xl bg-emerald-50 text-[#0F6E56] border border-emerald-200 flex items-center justify-center shrink-0 shadow-sm">
                     <Icon className="w-5 h-5" />
                   </div>
                   <h3 className="font-extrabold text-[#0F172A] text-sm">{feat.title}</h3>
@@ -151,7 +153,7 @@ export const GuidePage: React.FC<GuidePageProps> = ({ onStartTour }) => {
               <div className="pt-4 border-t border-slate-100 mt-4 flex justify-end">
                 <Link
                   to={feat.url}
-                  className="inline-flex items-center gap-1 text-xs font-bold text-[#2563EB] hover:underline"
+                  className="inline-flex items-center gap-1 text-xs font-bold text-[#0F6E56] hover:underline"
                 >
                   <span>Accéder directement</span>
                   <ArrowRight className="w-3.5 h-3.5" />

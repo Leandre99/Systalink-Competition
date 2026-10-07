@@ -9,6 +9,8 @@ import {
   ShieldCheck,
   DoorOpen,
   DoorClosed,
+  Sparkles,
+  MapPin,
 } from 'lucide-react';
 import { HelpRequest, User } from '@shared/index';
 import { apiFetch } from '../lib/api';
@@ -83,66 +85,78 @@ export const RadarPage: React.FC<RadarPageProps> = ({ currentUser, setCurrentUse
 
   return (
     <div className="space-y-8 animate-page-enter">
-      {/* Top Banner: Door Open Toggle */}
-      <div className="bg-white rounded-3xl p-6 border border-[#E2E8F0] shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div className="flex items-center gap-4">
-          <div className="w-12 h-12 rounded-2xl bg-[#EFF6FF] text-[#2563EB] border border-blue-200 flex items-center justify-center shrink-0">
-            <Radar className="w-6 h-6 animate-pulse-subtle" />
+      {/* Visual Radar Screen & Live Status */}
+      <div className="bg-[#0A1118] text-white rounded-3xl p-6 md:p-8 border border-emerald-500/30 shadow-2xl relative overflow-hidden flex flex-col md:flex-row md:items-center justify-between gap-6">
+        {/* Background Rotating Radar Screen Animation */}
+        <div className="absolute -right-10 -bottom-10 w-72 h-72 rounded-full border border-emerald-500/20 pointer-events-none flex items-center justify-center">
+          <div className="w-56 h-56 rounded-full border border-emerald-500/20 flex items-center justify-center">
+            <div className="w-40 h-40 rounded-full border border-emerald-500/30 flex items-center justify-center">
+              <div className="w-24 h-24 rounded-full border border-emerald-500/40"></div>
+            </div>
+          </div>
+          {/* Radar Sweep Needle */}
+          <div className="absolute inset-0 animate-radar-sweep pointer-events-none">
+            <div className="w-1/2 h-0.5 bg-gradient-to-r from-transparent to-[#F2A93B] origin-right ml-auto"></div>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-4 relative z-10">
+          <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-[#0F6E56] to-[#0A4F3E] text-[#F2A93B] border border-emerald-400/40 flex items-center justify-center shrink-0 shadow-glow-emerald">
+            <Radar className="w-7 h-7 animate-pulse-subtle" />
           </div>
           <div>
-            <h3 className="text-lg font-extrabold text-[#0F172A] flex items-center gap-2">
-              <span>Radar des aidants en direct</span>
-              {currentUser.doorOpen ? (
-                <span className="px-2.5 py-0.5 bg-[#ECFDF5] text-[#0F766E] text-xs font-extrabold rounded-full border border-emerald-200">
-                  Disponibilité active
-                </span>
-              ) : (
-                <span className="px-2.5 py-0.5 bg-slate-100 text-slate-600 text-xs font-bold rounded-full border border-slate-300">
-                  Porte fermée
-                </span>
-              )}
-            </h3>
-            <p className="text-xs text-slate-500 mt-0.5 font-medium">
-              Reçois des notifications en direct lorsque quelqu’un poste une erreur correspondant à tes compétences.
+            <div className="flex items-center gap-2">
+              <h3 className="text-xl font-black text-white tracking-tight">
+                Radar des Aidants en Direct
+              </h3>
+              <span className="px-2.5 py-0.5 bg-emerald-500/20 text-emerald-300 text-[10px] font-black rounded-full border border-emerald-500/30 flex items-center gap-1">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping"></span>
+                Scan Actif
+              </span>
+            </div>
+            <p className="text-xs text-slate-300 mt-1 font-medium max-w-xl">
+              Détection en temps réel des développeurs bloqués sur le réseau ouest-africain (Cotonou, Dakar, Abidjan, Lomé).
             </p>
           </div>
         </div>
 
-        <button
-          onClick={handleToggleDoor}
-          className={`btn-primary py-2.5 px-4 text-xs ${
-            currentUser.doorOpen
-              ? 'bg-[#2563EB] text-white hover:bg-[#1D4ED8]'
-              : 'bg-slate-800 text-white hover:bg-slate-900'
-          }`}
-        >
-          {currentUser.doorOpen ? (
-            <>
-              <DoorOpen className="w-4 h-4 text-[#F59E0B]" />
-              <span>Ma porte est ouverte</span>
-            </>
-          ) : (
-            <>
-              <DoorClosed className="w-4 h-4 text-slate-400" />
-              <span>Ouvrir ma porte</span>
-            </>
-          )}
-        </button>
+        <div className="relative z-10 flex items-center gap-3">
+          <button
+            onClick={handleToggleDoor}
+            className={`py-2.5 px-5 rounded-xl font-black text-xs transition-all flex items-center gap-2 shadow-lg ${
+              currentUser.doorOpen
+                ? 'btn-primary'
+                : 'bg-[#101A24] text-slate-300 hover:text-white border border-[#1E2E40]'
+            }`}
+          >
+            {currentUser.doorOpen ? (
+              <>
+                <DoorOpen className="w-4 h-4 text-[#F2A93B]" />
+                <span>Porte Ouverte aux Voisins</span>
+              </>
+            ) : (
+              <>
+                <DoorClosed className="w-4 h-4 text-slate-400" />
+                <span>Ouvrir ma porte pour aider</span>
+              </>
+            )}
+          </button>
+        </div>
       </div>
 
       {/* Stack Filter Bar */}
       <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-none">
         <span className="text-xs font-bold text-slate-500 uppercase tracking-wider flex items-center gap-1 shrink-0 mr-1">
-          <Filter className="w-3.5 h-3.5 text-[#2563EB]" />
+          <Filter className="w-3.5 h-3.5 text-[#0F6E56]" />
           Filtrer par stack :
         </span>
         {ALL_STACKS.map((stack) => (
           <button
             key={stack}
             onClick={() => setSelectedStack(stack)}
-            className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all shrink-0 border ${
+            className={`px-4 py-2 rounded-xl text-xs font-bold transition-all shrink-0 border ${
               selectedStack === stack
-                ? 'bg-[#2563EB] text-white border-[#2563EB] shadow-sm'
+                ? 'bg-gradient-to-r from-[#0F6E56] to-[#0A4F3E] text-white border-emerald-500/40 shadow-glow-emerald'
                 : 'bg-white text-slate-700 hover:bg-slate-100 border-slate-200'
             }`}
           >
@@ -157,12 +171,12 @@ export const RadarPage: React.FC<RadarPageProps> = ({ currentUser, setCurrentUse
           <ListSkeleton count={3} />
         ) : filteredRequests.length === 0 ? (
           <div className="p-12 bg-white rounded-3xl border border-[#E2E8F0] text-center space-y-4 shadow-sm">
-            <div className="w-12 h-12 bg-blue-50 rounded-full flex items-center justify-center mx-auto text-[#2563EB]">
-              <CheckCircle2 className="w-6 h-6" />
+            <div className="w-14 h-14 bg-emerald-50 rounded-2xl flex items-center justify-center mx-auto text-[#0F6E56] border border-emerald-200 shadow-sm">
+              <CheckCircle2 className="w-7 h-7" />
             </div>
-            <h4 className="text-base font-bold text-[#0F172A]">Le Radar est calme !</h4>
+            <h4 className="text-lg font-black text-[#0F172A] tracking-tight">Le Radar est calme !</h4>
             <p className="text-xs text-slate-500 max-w-sm mx-auto font-medium">
-              Aucune demande d’aide en attente pour la technologie <span className="font-bold text-slate-700">{selectedStack}</span>.
+              Aucune demande d’aide bloquée actuellement pour la technologie <strong className="text-slate-800">{selectedStack}</strong>. Tous les tests sont au vert.
             </p>
           </div>
         ) : (
@@ -173,18 +187,18 @@ export const RadarPage: React.FC<RadarPageProps> = ({ currentUser, setCurrentUse
                 <div
                   key={req.id}
                   className={`card-modern p-6 flex flex-col md:flex-row md:items-center justify-between gap-6 ${
-                    isNew ? 'border-[#F59E0B] animate-slide-in shadow-md' : ''
+                    isNew ? 'border-[#F2A93B] shadow-glow-amber ring-2 ring-[#F2A93B]/20' : ''
                   }`}
                 >
                   <div className="space-y-2 flex-1">
                     <div className="flex items-center gap-2">
-                      <span className="px-2.5 py-0.5 bg-[#EFF6FF] text-[#2563EB] text-xs font-extrabold rounded-full border border-blue-200">
+                      <span className="px-3 py-1 bg-emerald-50 text-[#0F6E56] text-xs font-black rounded-full border border-emerald-200 shadow-sm">
                         {req.stackTag}
                       </span>
                       {req.secretsMaskedCount > 0 && (
-                        <span className="px-2 py-0.5 bg-amber-50 text-amber-900 text-[10px] font-bold rounded border border-amber-200 flex items-center gap-1">
-                          <ShieldCheck className="w-3 h-3 text-[#F59E0B]" />
-                          Secrets masqués
+                        <span className="px-2.5 py-0.5 bg-amber-50 text-amber-900 text-[10px] font-bold rounded-full border border-amber-200 flex items-center gap-1">
+                          <ShieldCheck className="w-3.5 h-3.5 text-[#F2A93B]" />
+                          {req.secretsMaskedCount} secret(s) masqué(s)
                         </span>
                       )}
                       <span className="text-xs text-slate-400 flex items-center gap-1 font-medium">
@@ -193,11 +207,11 @@ export const RadarPage: React.FC<RadarPageProps> = ({ currentUser, setCurrentUse
                       </span>
                     </div>
 
-                    <h4 className="text-base font-extrabold text-[#0F172A]">{req.title}</h4>
-                    <p className="text-xs text-slate-600 line-clamp-2 font-medium">{req.description}</p>
+                    <h4 className="text-base md:text-lg font-extrabold text-[#0F172A]">{req.title}</h4>
+                    <p className="text-xs md:text-sm text-slate-600 line-clamp-2 font-medium leading-relaxed">{req.description}</p>
 
                     <div className="text-xs text-slate-500 flex items-center gap-2 pt-1 font-medium">
-                      <span>Demandeur : <strong className="text-slate-800">{req.requesterName}</strong></span>
+                      <span>Demandeur : <strong className="text-slate-900">{req.requesterName}</strong></span>
                     </div>
                   </div>
 
@@ -205,10 +219,10 @@ export const RadarPage: React.FC<RadarPageProps> = ({ currentUser, setCurrentUse
                     <button
                       onClick={() => handleJoinRoom(req)}
                       disabled={joiningId === req.id}
-                      className="btn-primary py-2.5 px-5 text-xs"
+                      className="btn-amber py-3 px-5 text-xs shadow-glow-amber"
                     >
-                      <Zap className="w-4 h-4 text-[#F59E0B]" />
-                      <span>{joiningId === req.id ? 'Rejointure...' : 'Rejoindre en CodeFlash'}</span>
+                      <Zap className="w-4 h-4 text-white" />
+                      <span>{joiningId === req.id ? 'Ouverture de la salle...' : 'Rejoindre en CodeFlash (1 clic)'}</span>
                     </button>
                   </div>
                 </div>

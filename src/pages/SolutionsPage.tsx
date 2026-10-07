@@ -9,6 +9,7 @@ import {
   ArrowLeft,
   Code2,
   ArrowRight,
+  ShieldCheck,
 } from 'lucide-react';
 import { SolutionSheet } from '@shared/index';
 import { apiFetch } from '../lib/api';
@@ -75,7 +76,7 @@ export const SolutionsPage: React.FC = () => {
     return (
       <div className="max-w-4xl mx-auto space-y-6 animate-page-enter">
         <div className="flex items-center justify-between">
-          <Link to="/solutions" className="inline-flex items-center gap-1.5 text-xs font-bold text-slate-600 hover:text-[#2563EB]">
+          <Link to="/solutions" className="inline-flex items-center gap-1.5 text-xs font-bold text-slate-600 hover:text-[#0F6E56] transition-colors">
             <ArrowLeft className="w-4 h-4" />
             <span>Toutes les fiches solutions</span>
           </Link>
@@ -85,10 +86,10 @@ export const SolutionsPage: React.FC = () => {
               href={`https://wa.me/?text=${whatsappShareText}`}
               target="_blank"
               rel="noopener noreferrer"
-              className="btn-primary py-1.5 px-3.5 text-xs"
+              className="btn-primary py-2 px-3.5 text-xs"
             >
-              <Share2 className="w-3.5 h-3.5" />
-              <span>Partager WhatsApp</span>
+              <Share2 className="w-3.5 h-3.5 text-white" />
+              <span>Partager sur WhatsApp</span>
             </a>
 
             <button
@@ -104,19 +105,19 @@ export const SolutionsPage: React.FC = () => {
         <div className="bg-white rounded-3xl p-6 md:p-8 border border-[#E2E8F0] shadow-sm space-y-6">
           <div className="space-y-3 pb-6 border-b border-slate-100">
             <div className="flex items-center gap-2">
-              <span className="px-3 py-1 bg-[#EFF6FF] text-[#2563EB] text-xs font-extrabold rounded-full border border-blue-200">
+              <span className="px-3 py-1 bg-emerald-50 text-[#0F6E56] text-xs font-black rounded-full border border-emerald-200 shadow-sm">
                 {sol.stackTag}
               </span>
-              <span className="text-xs text-[#0F766E] font-bold flex items-center gap-1">
-                <CheckCircle2 className="w-4 h-4 text-[#F59E0B]" />
+              <span className="text-xs text-[#0F6E56] font-bold flex items-center gap-1 bg-[#ECFDF5] px-2.5 py-0.5 rounded-full border border-emerald-200">
+                <CheckCircle2 className="w-3.5 h-3.5 text-[#F2A93B]" />
                 Confirmée par test
               </span>
             </div>
 
-            <h2 className="text-2xl font-extrabold text-[#0F172A] tracking-tight">{sol.title}</h2>
+            <h2 className="text-2xl font-black text-[#0F172A] tracking-tight">{sol.title}</h2>
 
             <div className="flex flex-wrap items-center gap-4 text-xs text-slate-500 pt-1 font-medium">
-              <span>Co-créée par <strong className="text-slate-800">{sol.authorName}</strong> (Demandeur) & <strong className="text-slate-800">{sol.helperName}</strong> (Aidant)</span>
+              <span>Co-créée par <strong className="text-slate-900">{sol.authorName}</strong> (Demandeur) & <strong className="text-slate-900">{sol.helperName}</strong> (Aidant)</span>
               <span>•</span>
               <span>Publiée le {new Date(sol.publishedAt).toLocaleDateString('fr-FR')}</span>
             </div>
@@ -129,14 +130,14 @@ export const SolutionsPage: React.FC = () => {
             </div>
 
             <div className="p-4 bg-amber-50/60 rounded-2xl border border-amber-100 space-y-1">
-              <h4 className="text-xs font-bold text-amber-900 uppercase tracking-wider">Cause racine :</h4>
+              <h4 className="text-xs font-bold text-amber-900 uppercase tracking-wider">Cause racine identifiée :</h4>
               <p className="text-xs text-slate-800 leading-relaxed font-medium">{sol.cause}</p>
             </div>
           </div>
 
           <div className="space-y-2">
             <h4 className="text-xs font-bold text-slate-700 uppercase tracking-wider">Solution validée :</h4>
-            <p className="text-sm text-slate-900 leading-relaxed p-4 bg-emerald-50/60 rounded-2xl border border-emerald-100 font-medium">
+            <p className="text-sm text-slate-900 leading-relaxed p-4 bg-emerald-50/60 rounded-2xl border border-emerald-200 font-medium">
               {sol.solution}
             </p>
           </div>
@@ -144,10 +145,10 @@ export const SolutionsPage: React.FC = () => {
           {sol.codeSnippet && (
             <div className="space-y-2">
               <h4 className="text-xs font-bold text-slate-700 uppercase tracking-wider flex items-center gap-1.5">
-                <Code2 className="w-4 h-4 text-[#2563EB]" />
+                <Code2 className="w-4 h-4 text-[#0F6E56]" />
                 Extrait de code correctif :
               </h4>
-              <pre className="p-4 bg-slate-900 text-blue-300 font-mono text-xs rounded-2xl overflow-x-auto border border-slate-800">
+              <pre className="p-4 bg-[#0A1118] text-emerald-300 font-mono text-xs rounded-2xl overflow-x-auto border border-[#1E2E40]">
                 <code>{sol.codeSnippet}</code>
               </pre>
             </div>
@@ -155,7 +156,10 @@ export const SolutionsPage: React.FC = () => {
 
           <div className="pt-4 border-t border-slate-100 flex items-center justify-between text-xs text-slate-400">
             <span className="font-mono text-[10px]">Preuve certifiée : {sol.proofHash}</span>
-            <span className="font-bold text-[#2563EB]">KoraDevs Certified</span>
+            <span className="font-black text-[#0F6E56] flex items-center gap-1">
+              <ShieldCheck className="w-3.5 h-3.5 text-[#F2A93B]" />
+              KoraDevs Certified
+            </span>
           </div>
         </div>
 
@@ -192,9 +196,9 @@ export const SolutionsPage: React.FC = () => {
             <button
               key={tag}
               onClick={() => setSelectedTag(tag)}
-              className={`px-3 py-1 rounded-xl text-xs font-bold transition-all shrink-0 ${
+              className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all shrink-0 ${
                 selectedTag === tag
-                  ? 'bg-[#2563EB] text-white shadow'
+                  ? 'bg-gradient-to-r from-[#0F6E56] to-[#0A4F3E] text-white shadow-glow-emerald'
                   : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
               }`}
             >
@@ -222,27 +226,27 @@ export const SolutionsPage: React.FC = () => {
             >
               <div>
                 <div className="flex items-center justify-between gap-2 mb-3">
-                  <span className="px-2.5 py-0.5 bg-[#EFF6FF] text-[#2563EB] text-xs font-extrabold rounded-full border border-blue-200">
+                  <span className="px-3 py-1 bg-emerald-50 text-[#0F6E56] text-xs font-black rounded-full border border-emerald-200">
                     {sol.stackTag}
                   </span>
-                  <span className="text-xs text-[#0F766E] font-bold flex items-center gap-1">
-                    <CheckCircle2 className="w-3.5 h-3.5 text-[#F59E0B]" />
+                  <span className="text-xs text-[#0F6E56] font-bold flex items-center gap-1">
+                    <CheckCircle2 className="w-3.5 h-3.5 text-[#F2A93B]" />
                     Confirmée
                   </span>
                 </div>
 
-                <h3 className="font-extrabold text-[#0F172A] text-base group-hover:text-[#2563EB] transition-colors mb-2">
+                <h3 className="font-extrabold text-[#0F172A] text-base group-hover:text-[#0F6E56] transition-colors mb-2">
                   {sol.title}
                 </h3>
 
-                <p className="text-xs text-slate-600 line-clamp-2 mb-4 font-medium">
+                <p className="text-xs text-slate-600 line-clamp-2 mb-4 font-medium leading-relaxed">
                   {sol.problem}
                 </p>
               </div>
 
               <div className="pt-3 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500 font-medium">
                 <span>Par {sol.authorName} & {sol.helperName}</span>
-                <span className="font-bold text-[#2563EB] group-hover:translate-x-1 transition-transform flex items-center gap-1">
+                <span className="font-bold text-[#0F6E56] group-hover:translate-x-1 transition-transform flex items-center gap-1">
                   Lire la fiche <ArrowRight className="w-3.5 h-3.5" />
                 </span>
               </div>

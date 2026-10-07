@@ -55,23 +55,23 @@ export const GuidedTour: React.FC<GuidedTourProps> = ({ isOpen, onClose }) => {
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 animate-page-enter">
-      <div className="bg-white rounded-3xl shadow-2xl max-w-md w-full p-6 md:p-8 border-2 border-[#2563EB] relative">
+    <div className="fixed inset-0 z-50 bg-[#0A1118]/70 backdrop-blur-md flex items-center justify-center p-4 animate-page-enter">
+      <div className="bg-white rounded-3xl shadow-2xl max-w-md w-full p-6 md:p-8 border-2 border-emerald-500/40 relative">
         <button
           onClick={onClose}
-          className="absolute top-5 right-5 text-slate-400 hover:text-slate-700 p-1.5 rounded-xl hover:bg-slate-100 transition-colors"
+          className="absolute top-5 right-5 text-slate-400 hover:text-slate-700 p-2 rounded-xl hover:bg-slate-100 transition-colors"
         >
           <X className="w-5 h-5" />
         </button>
 
         <div className="flex items-center gap-2 mb-3">
-          <span className="px-3 py-1 bg-[#EFF6FF] text-[#2563EB] text-xs font-extrabold rounded-full border border-blue-200 flex items-center gap-1.5">
-            <Sparkles className="w-3.5 h-3.5 text-[#F59E0B]" />
+          <span className="px-3 py-1 bg-emerald-50 text-[#0F6E56] text-xs font-black rounded-full border border-emerald-200 flex items-center gap-1.5 shadow-sm">
+            <Sparkles className="w-3.5 h-3.5 text-[#F2A93B]" />
             Visite guidée ({currentStep.step} / {TOUR_STEPS.length})
           </span>
         </div>
 
-        <h3 className="text-xl font-extrabold text-[#0F172A] mb-2 tracking-tight">
+        <h3 className="text-xl font-black text-[#0F172A] mb-2 tracking-tight">
           {currentStep.title}
         </h3>
 
@@ -79,10 +79,10 @@ export const GuidedTour: React.FC<GuidedTourProps> = ({ isOpen, onClose }) => {
           {currentStep.description}
         </p>
 
-        {/* Progress Bar */}
-        <div className="w-full bg-slate-100 h-2 rounded-full overflow-hidden mb-6">
+        {/* Progress Bar with Amber Gradient */}
+        <div className="w-full bg-slate-100 h-2.5 rounded-full overflow-hidden mb-6 border border-slate-200">
           <div
-            className="bg-[#2563EB] h-full transition-all duration-300"
+            className="bg-gradient-to-r from-[#0F6E56] to-[#F2A93B] h-full transition-all duration-300 rounded-full"
             style={{ width: `${((currentStepIndex + 1) / TOUR_STEPS.length) * 100}%` }}
           ></div>
         </div>
@@ -105,7 +105,7 @@ export const GuidedTour: React.FC<GuidedTourProps> = ({ isOpen, onClose }) => {
             {isLast ? (
               <>
                 <span>Terminer</span>
-                <Check className="w-4 h-4 text-[#F59E0B]" />
+                <Check className="w-4 h-4 text-[#F2A93B]" />
               </>
             ) : (
               <>

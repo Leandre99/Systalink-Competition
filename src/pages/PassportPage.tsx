@@ -9,6 +9,7 @@ import {
   ShieldCheck,
   FileCheck,
   ArrowLeft,
+  Sparkles,
 } from 'lucide-react';
 import { Passport, User } from '@shared/index';
 import { apiFetch } from '../lib/api';
@@ -65,7 +66,7 @@ export const PassportPage: React.FC<PassportPageProps> = ({ currentUser }) => {
       {/* Top Action Bar */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         {id && (
-          <Link to="/passport" className="inline-flex items-center gap-1 text-xs font-bold text-slate-600 hover:text-[#2563EB]">
+          <Link to="/passport" className="inline-flex items-center gap-1.5 text-xs font-bold text-slate-600 hover:text-[#0F6E56] transition-colors">
             <ArrowLeft className="w-4 h-4" />
             <span>Mon propre Passeport</span>
           </Link>
@@ -76,68 +77,70 @@ export const PassportPage: React.FC<PassportPageProps> = ({ currentUser }) => {
             href={`https://wa.me/?text=${whatsappText}`}
             target="_blank"
             rel="noopener noreferrer"
-            className="btn-primary py-2 px-4 text-xs"
+            className="btn-primary py-2.5 px-4 text-xs"
           >
-            <Share2 className="w-3.5 h-3.5 text-white" />
-            <span>Partager WhatsApp</span>
+            <Share2 className="w-4 h-4 text-white" />
+            <span>Partager sur WhatsApp</span>
           </a>
 
           <button
             onClick={() => generatePassportPDF(passport)}
-            className="btn-secondary py-2 px-4 text-xs border-blue-200 hover:bg-blue-50 text-[#2563EB]"
+            className="btn-amber py-2.5 px-4 text-xs"
           >
-            <Download className="w-3.5 h-3.5 text-[#F59E0B]" />
-            <span>Exporter PDF</span>
+            <Download className="w-4 h-4 text-white" />
+            <span>Exporter en PDF</span>
           </button>
         </div>
       </div>
 
-      {/* Main Passport Document Card */}
-      <div className="bg-white rounded-3xl border-2 border-[#1E3A8A] shadow-2xl overflow-hidden relative">
-        {/* Top Banner (Navy Dark #0F172A & Blue Accent) */}
-        <div className="bg-[#0F172A] text-white p-6 md:p-8 flex flex-col md:flex-row md:items-center justify-between gap-6 border-b-4 border-[#2563EB]">
-          <div className="space-y-2">
-            <div className="inline-flex items-center gap-2 px-3 py-1 bg-[#2563EB] rounded-full text-xs font-bold text-white shadow-sm">
-              <Award className="w-3.5 h-3.5 text-[#F59E0B]" />
-              <span>Passeport Numérique Certifié</span>
+      {/* Main Passport Document Card - Prestige Tech Certificate Design */}
+      <div className="bg-white rounded-3xl border-2 border-[#0F6E56]/40 shadow-2xl overflow-hidden relative">
+        {/* Top Banner (Navy Dark #0A1118 with Emerald and Gold Accents) */}
+        <div className="bg-gradient-to-r from-[#0A1118] via-[#101A24] to-[#0A4F3E] text-white p-6 md:p-8 flex flex-col md:flex-row md:items-center justify-between gap-6 border-b-4 border-[#F2A93B] relative overflow-hidden">
+          <div className="absolute -top-12 -left-12 w-48 h-48 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none" />
+
+          <div className="space-y-2 relative z-10">
+            <div className="inline-flex items-center gap-2 px-3.5 py-1 bg-gradient-to-r from-[#0F6E56] to-[#0A4F3E] rounded-full text-xs font-black text-white shadow-sm border border-emerald-400/30 uppercase tracking-wider">
+              <Award className="w-3.5 h-3.5 text-[#F2A93B]" />
+              <span>PASSEPORT DE COMPÉTENCES CERTIFIÉ (CADev 2026)</span>
             </div>
             <h2 className="text-2xl md:text-3xl font-black tracking-tight text-white">{passport.userName}</h2>
-            <p className="text-xs text-slate-300 font-medium">{passport.userCity} • {passport.bio}</p>
+            <p className="text-xs text-emerald-200 font-medium">{passport.userCity} • {passport.bio}</p>
           </div>
 
-          {/* Animated SVG "Signé" Seal */}
-          <div className="shrink-0 flex items-center justify-center">
-            <div className="w-24 h-24 rounded-full border-4 border-[#F59E0B] bg-[#1E3A8A] flex flex-col items-center justify-center text-center shadow-lg relative p-2">
-              <svg className="absolute inset-0 w-full h-full pointer-events-none" viewBox="0 0 100 100">
+          {/* Animated Gold/Amber "Signé" Seal */}
+          <div className="shrink-0 flex items-center justify-center relative z-10">
+            <div className="w-28 h-28 rounded-full border-4 border-[#F2A93B] bg-[#0A1118] flex flex-col items-center justify-center text-center shadow-glow-amber relative p-2">
+              <svg className="absolute inset-0 w-full h-full pointer-events-none animate-seal-rotate" viewBox="0 0 100 100">
                 <circle
                   cx="50"
                   cy="50"
-                  r="46"
+                  r="45"
                   fill="none"
-                  stroke="#F59E0B"
-                  strokeWidth="3"
-                  className="animate-seal-draw"
+                  stroke="#F2A93B"
+                  strokeWidth="2"
+                  strokeDasharray="4 3"
                 />
               </svg>
-              <CheckCircle2 className="w-8 h-8 text-[#F59E0B] mb-0.5" />
-              <span className="text-[10px] font-black tracking-widest text-white uppercase">SIGNÉ</span>
-              <span className="text-[8px] text-blue-200 font-bold">KoraDevs</span>
+              <CheckCircle2 className="w-8 h-8 text-[#F2A93B] mb-0.5 animate-amber-spring" />
+              <span className="text-[10px] font-black tracking-widest text-white uppercase">CERTIFIÉ</span>
+              <span className="text-[8px] text-[#F2A93B] font-bold">KoraDevs</span>
             </div>
           </div>
         </div>
 
         {/* Stats Strip */}
-        <div className="bg-[#F8FAFC] p-6 border-b border-slate-200 grid grid-cols-3 gap-4 text-center">
+        <div className="bg-[#F8FAF9] p-6 border-b border-slate-200 grid grid-cols-3 gap-4 text-center">
           <div className="space-y-1">
-            <span className="text-2xl font-black text-[#2563EB]">{passport.points}</span>
+            <span className="text-2xl md:text-3xl font-black text-[#F2A93B]">{passport.points}</span>
             <p className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Points Gagnés</p>
           </div>
           <div className="space-y-1 border-x border-slate-200">
-            <span className="text-2xl font-black text-[#2563EB]">{passport.helpsCount}</span>
+            <span className="text-2xl md:text-3xl font-black text-[#0F6E56]">{passport.helpsCount}</span>
             <p className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Aides Confirmées</p>
           </div>
           <div className="space-y-1">
-            <span className="text-2xl font-black text-[#2563EB]">{passport.solutionsCount}</span>
+            <span className="text-2xl md:text-3xl font-black text-[#0A1118]">{passport.solutionsCount}</span>
             <p className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Fiches Publiées</p>
           </div>
         </div>
@@ -145,10 +148,10 @@ export const PassportPage: React.FC<PassportPageProps> = ({ currentUser }) => {
         {/* Body Content */}
         <div className="p-6 md:p-8 space-y-8">
           <div className="space-y-2">
-            <h4 className="text-xs font-bold text-slate-700 uppercase tracking-wider">Stack Maîtrisée :</h4>
+            <h4 className="text-xs font-bold text-slate-700 uppercase tracking-wider">Stack Technique Validée :</h4>
             <div className="flex flex-wrap gap-2">
               {passport.stack.map((s) => (
-                <span key={s} className="px-3 py-1 bg-[#EFF6FF] text-[#2563EB] text-xs font-extrabold rounded-full border border-blue-200">
+                <span key={s} className="px-3.5 py-1 bg-emerald-50 text-[#0F6E56] text-xs font-black rounded-full border border-emerald-200 shadow-sm">
                   {s}
                 </span>
               ))}
@@ -158,10 +161,10 @@ export const PassportPage: React.FC<PassportPageProps> = ({ currentUser }) => {
           <div className="space-y-4">
             <div className="flex items-center justify-between">
               <h4 className="text-xs font-bold text-slate-700 uppercase tracking-wider flex items-center gap-2">
-                <FileCheck className="w-4 h-4 text-[#2563EB]" />
+                <FileCheck className="w-4 h-4 text-[#0F6E56]" />
                 <span>Preuves d entraide vérifiables ({passport.proofs.length})</span>
               </h4>
-              <span className="text-[11px] text-slate-400 font-medium">Signatures cryptographiques</span>
+              <span className="text-[11px] text-slate-400 font-medium">Validées par test unitaire</span>
             </div>
 
             {passport.proofs.length === 0 ? (
@@ -177,11 +180,11 @@ export const PassportPage: React.FC<PassportPageProps> = ({ currentUser }) => {
                   >
                     <div className="space-y-1">
                       <div className="flex items-center gap-2">
-                        <CheckCircle2 className="w-4 h-4 text-[#0F766E] shrink-0" />
+                        <CheckCircle2 className="w-4 h-4 text-[#0F6E56] shrink-0" />
                         <h5 className="text-xs font-extrabold text-[#0F172A]">{proof.title}</h5>
                       </div>
                       <p className="text-[11px] text-slate-600 pl-6 font-medium">{proof.detail}</p>
-                      <p className="text-[10px] font-mono text-slate-400 pl-6">Hash: {proof.hash}</p>
+                      <p className="text-[10px] font-mono text-slate-400 pl-6">Hash cryptographique : {proof.hash}</p>
                     </div>
 
                     <Link
@@ -198,15 +201,15 @@ export const PassportPage: React.FC<PassportPageProps> = ({ currentUser }) => {
           </div>
 
           {/* Cryptographic Signature Footer Box */}
-          <div className="p-4 bg-amber-50 rounded-2xl border border-amber-200 text-xs space-y-1">
+          <div className="p-4 bg-amber-50/80 rounded-2xl border border-amber-200 text-xs space-y-1">
             <div className="flex items-center justify-between font-bold text-amber-900">
               <span className="flex items-center gap-1.5">
-                <ShieldCheck className="w-4 h-4 text-[#F59E0B]" />
+                <ShieldCheck className="w-4 h-4 text-[#F2A93B]" />
                 Empreinte Numérique Infalsifiable
               </span>
-              <span className="text-[10px] text-amber-700 font-bold">Horodaté par KoraDevs</span>
+              <span className="text-[10px] text-amber-700 font-bold">Horodaté sur le réseau KoraDevs</span>
             </div>
-            <p className="font-mono text-[11px] text-amber-800 break-all pt-1">
+            <p className="font-mono text-[11px] text-amber-900 break-all pt-1 font-semibold">
               {passport.signatureHash}
             </p>
           </div>

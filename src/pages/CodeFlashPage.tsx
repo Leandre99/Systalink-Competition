@@ -10,6 +10,9 @@ import {
   ShieldCheck,
   Award,
   Code2,
+  Terminal,
+  Sparkles,
+  Users,
 } from 'lucide-react';
 import { Room, User, SolutionSheet } from '@shared/index';
 import { apiFetch } from '../lib/api';
@@ -33,7 +36,7 @@ export const CodeFlashPage: React.FC<CodeFlashPageProps> = ({ currentUser }) => 
   const [wsStatus, setWsStatus] = useState<'connecting' | 'connected' | 'reconnecting' | 'async_fallback' | 'disconnected'>('disconnected');
   const [partnerStatus, setPartnerStatus] = useState<string>('En ligne');
   const [partnerTyping, setPartnerTyping] = useState(false);
-  const [partnerCursor, setPartnerCursor] = useState<{ line: number; ch: number } | null>({ line: 4, ch: 12 });
+  const [partnerCursor, setPartnerCursor] = useState<{ line: number; ch: number } | null>({ line: 4, ch: 14 });
 
   // Test execution state
   const [testing, setTesting] = useState(false);
@@ -97,6 +100,10 @@ export const CodeFlashPage: React.FC<CodeFlashPageProps> = ({ currentUser }) => 
           setPartnerCursor(msg.cursor);
         } else if (msg.type === 'test_result') {
           setRoom(msg.room);
+          if (msg.room.confirmed) {
+            setCelebrate(true);
+            setTimeout(() => setCelebrate(false), 2500);
+          }
         } else if (msg.type === 'room_updated') {
           setRoom(msg.room);
         }
@@ -149,6 +156,10 @@ export const CodeFlashPage: React.FC<CodeFlashPageProps> = ({ currentUser }) => 
       });
 
       setRoom(res.room);
+      if (res.room.confirmed) {
+        setCelebrate(true);
+        setTimeout(() => setCelebrate(false), 2500);
+      }
     } catch (err: any) {
       console.error('Erreur exécution test:', err);
     } finally {
@@ -215,47 +226,53 @@ export const CodeFlashPage: React.FC<CodeFlashPageProps> = ({ currentUser }) => 
   const isRequester = currentUser.id === room.requesterId;
   const partnerName = isRequester ? room.helperName : room.requesterName;
 
+  // Split lines for IDE gutter
+  const codeLines = code.split('\n');
+
   return (
     <div className={`space-y-6 animate-page-enter ${celebrate ? 'animate-celebrate' : ''}`}>
-      {/* Top Header Bar */}
-      <div className="bg-[#0F172A] text-white p-5 md:p-6 rounded-3xl shadow-xl flex flex-col md:flex-row md:items-center justify-between gap-4 border border-slate-800">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-2xl bg-[#2563EB] text-[#F59E0B] flex items-center justify-center font-black text-lg shadow-blue">
+      {/* Top Header Bar - High Tech Navy & Gold Accent */}
+      <div className="bg-[#0A1118] text-white p-5 md:p-6 rounded-3xl shadow-2xl flex flex-col md:flex-row md:items-center justify-between gap-4 border border-[#1E2E40] relative overflow-hidden">
+        <div className="absolute -top-10 -right-10 w-40 h-40 bg-emerald-500/10 rounded-full blur-2xl pointer-events-none" />
+
+        <div className="flex items-center gap-3.5 relative z-10">
+          <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-[#0F6E56] to-[#0A4F3E] text-[#F2A93B] flex items-center justify-center font-black text-xl shadow-glow-emerald border border-emerald-500/30">
             ⚡
           </div>
           <div>
             <div className="flex items-center gap-2">
-              <span className="px-2.5 py-0.5 bg-blue-900/60 text-blue-300 text-[10px] font-extrabold rounded-full uppercase border border-blue-700">
+              <span className="px-2.5 py-0.5 bg-emerald-950/80 text-emerald-300 text-[10px] font-black rounded-full uppercase border border-emerald-500/40">
                 {room.stackTag}
               </span>
-              <span className="text-xs text-slate-400 font-medium">Salle CodeFlash #{room.id}</span>
+              <span className="text-xs text-slate-400 font-semibold">Salle CodeFlash #{room.id}</span>
             </div>
-            <h3 className="text-lg md:text-xl font-extrabold text-white mt-0.5">{room.requestTitle}</h3>
+            <h3 className="text-lg md:text-xl font-black text-white mt-0.5 tracking-tight">{room.requestTitle}</h3>
           </div>
         </div>
 
-        <div className="flex flex-wrap items-center gap-3 text-xs">
-          <div className="px-3 py-1.5 bg-slate-800/80 rounded-xl border border-slate-700 flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-3 text-xs relative z-10">
+          <div className="px-3.5 py-1.5 bg-[#101A24] rounded-xl border border-[#1E2E40] flex items-center gap-2">
             {wsStatus === 'connected' ? (
               <>
-                <span className="w-2.5 h-2.5 rounded-full bg-[#0F766E]"></span>
-                <span className="text-emerald-300 font-bold">Temps réel connecté</span>
+                <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                <span className="text-emerald-300 font-bold">● Temps réel connecté</span>
               </>
             ) : wsStatus === 'reconnecting' ? (
               <>
-                <span className="w-2.5 h-2.5 rounded-full bg-[#F59E0B] animate-ping"></span>
-                <span className="text-amber-300 font-bold">Reconnexion...</span>
+                <span className="w-2.5 h-2.5 rounded-full bg-[#F2A93B] animate-ping"></span>
+                <span className="text-amber-300 font-bold">Reconnexion WebSockets...</span>
               </>
             ) : (
               <>
                 <span className="w-2.5 h-2.5 rounded-full bg-slate-500"></span>
-                <span className="text-slate-300 font-bold">Mode asynchrone (code collé)</span>
+                <span className="text-slate-300 font-bold">Mode dégradé asynchrone</span>
               </>
             )}
           </div>
 
-          <div className="px-3 py-1.5 bg-slate-800/80 rounded-xl border border-slate-700 text-slate-300 font-medium">
-            Participant : <strong className="text-white">{partnerName}</strong>
+          <div className="px-3.5 py-1.5 bg-[#101A24] rounded-xl border border-[#1E2E40] text-slate-300 font-medium flex items-center gap-1.5">
+            <Users className="w-3.5 h-3.5 text-emerald-400" />
+            <span>Binôme : <strong className="text-white font-bold">{partnerName}</strong></span>
           </div>
         </div>
       </div>
@@ -264,79 +281,107 @@ export const CodeFlashPage: React.FC<CodeFlashPageProps> = ({ currentUser }) => 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Left Column (2 cols): Code Editor & Test Output */}
         <div className="lg:col-span-2 space-y-4">
-          <div className="bg-[#0F172A] px-4 py-3 rounded-t-2xl border-b border-slate-800 flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <Code2 className="w-4 h-4 text-[#2563EB]" />
-              <span className="text-xs font-bold text-slate-200 uppercase tracking-wider">
-                Éditeur partagé en direct
-              </span>
+          {/* Editor Window Chrome (Like VS Code / Linear) */}
+          <div className="bg-[#0A1118] rounded-3xl border border-[#1E2E40] overflow-hidden shadow-2xl">
+            {/* Window Title & Tabs */}
+            <div className="bg-[#101A24] px-4 py-3 border-b border-[#1E2E40] flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                {/* Traffic lights dots */}
+                <div className="flex items-center gap-1.5">
+                  <div className="w-3 h-3 rounded-full bg-[#E4572E]/80 border border-red-500/30"></div>
+                  <div className="w-3 h-3 rounded-full bg-[#F2A93B]/80 border border-amber-500/30"></div>
+                  <div className="w-3 h-3 rounded-full bg-[#0F6E56]/80 border border-emerald-500/30"></div>
+                </div>
+
+                {/* Active Tab */}
+                <div className="flex items-center gap-2 px-3 py-1 bg-[#0A1118] text-emerald-300 rounded-lg text-xs font-mono font-bold border border-[#1E2E40]">
+                  <Code2 className="w-3.5 h-3.5 text-emerald-400" />
+                  <span>solution.{room.stackTag.toLowerCase() === 'python' ? 'py' : 'ts'}</span>
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping"></span>
+                </div>
+              </div>
+
+              {/* Status Badge */}
+              {room.confirmed ? (
+                <div className="px-3 py-1 bg-amber-400/20 text-[#F2A93B] text-xs font-black rounded-lg border border-[#F2A93B]/50 flex items-center gap-1.5 animate-amber-spring shadow-glow-amber">
+                  <CheckCircle2 className="w-4 h-4 text-[#F2A93B]" />
+                  <span>Badge CONFIRMÉ (+25 pts)</span>
+                </div>
+              ) : (
+                <span className="text-xs text-slate-400 font-medium">Test non encore validé</span>
+              )}
             </div>
 
-            {room.confirmed ? (
-              <span className="px-3 py-1 bg-amber-500/20 text-[#F59E0B] text-xs font-extrabold rounded-lg border border-amber-500/40 flex items-center gap-1.5 animate-amber-spring">
-                <CheckCircle2 className="w-4 h-4" />
-                <span>Badge CONFIRMÉ (+25 pts)</span>
-              </span>
-            ) : (
-              <span className="text-xs text-slate-400 font-medium">En attente de confirmation</span>
-            )}
-          </div>
-
-          {/* Interactive Code Editor Area */}
-          <div className="relative bg-slate-950 rounded-b-2xl border border-slate-800 overflow-hidden shadow-inner">
-            <textarea
-              value={code}
-              onChange={handleCodeChange}
-              rows={16}
-              className="w-full p-4 bg-transparent text-blue-300 font-mono text-xs leading-relaxed focus:outline-none resize-none"
-              placeholder="// Saisissez et modifiez le code ensemble ici en temps réel..."
-            ></textarea>
-
-            {partnerCursor && (
-              <div
-                className="absolute pointer-events-none flex items-center gap-1 bg-[#F59E0B] text-slate-950 text-[10px] font-bold px-1.5 py-0.5 rounded shadow z-10 transition-all duration-200"
-                style={{ top: `${partnerCursor.line * 20}px`, left: `${partnerCursor.ch * 8}px` }}
-              >
-                <span>{partnerName}</span>
+            {/* Interactive Code Editor Area with Line Gutter */}
+            <div className="relative bg-[#070C12] p-4 flex font-mono text-xs leading-6 overflow-hidden">
+              {/* Gutter with line numbers */}
+              <div className="select-none text-slate-600 pr-4 text-right border-r border-[#1E2E40] mr-4 space-y-0 min-w-[28px]">
+                {codeLines.map((_, i) => (
+                  <div key={i}>{i + 1}</div>
+                ))}
               </div>
-            )}
 
-            {partnerTyping && (
-              <div className="absolute bottom-3 right-4 px-3 py-1 bg-slate-800/80 text-blue-400 text-[11px] font-bold rounded-full border border-slate-700 animate-pulse">
-                {partnerName} est en train d écrire...
+              {/* Textarea Code Input */}
+              <div className="relative flex-1">
+                <textarea
+                  value={code}
+                  onChange={handleCodeChange}
+                  rows={Math.max(16, codeLines.length)}
+                  className="w-full bg-transparent text-emerald-300 font-mono text-xs leading-6 focus:outline-none resize-none selection:bg-[#0F6E56]/40"
+                  placeholder="// Écris et modifie le code en direct avec ton binôme..."
+                  spellCheck={false}
+                ></textarea>
+
+                {/* Live Partner Cursor Marker */}
+                {partnerCursor && (
+                  <div
+                    className="absolute pointer-events-none flex items-center gap-1 bg-[#F2A93B] text-[#0A1118] text-[10px] font-black px-1.5 py-0.5 rounded shadow-lg z-10 transition-all duration-150"
+                    style={{ top: `${partnerCursor.line * 24}px`, left: `${partnerCursor.ch * 7.5}px` }}
+                  >
+                    <span>{partnerName} ✍️</span>
+                  </div>
+                )}
+
+                {/* Partner Typing Bubble */}
+                {partnerTyping && (
+                  <div className="absolute bottom-2 right-2 px-3 py-1 bg-[#101A24] text-emerald-300 text-[11px] font-bold rounded-full border border-emerald-500/40 animate-pulse flex items-center gap-1.5 shadow-lg">
+                    <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
+                    <span>{partnerName} est en train d écrire...</span>
+                  </div>
+                )}
               </div>
-            )}
+            </div>
           </div>
 
           {/* Test Action & Console Output */}
           <div className="bg-white p-5 rounded-3xl border border-[#E2E8F0] shadow-sm space-y-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <Play className="w-4 h-4 text-[#2563EB]" />
-                <h4 className="text-sm font-extrabold text-[#0F172A]">Exécution du test de vérification</h4>
+                <Terminal className="w-4 h-4 text-[#0F6E56]" />
+                <h4 className="text-sm font-extrabold text-[#0F172A]">Terminal de vérification par le test</h4>
               </div>
 
               <button
                 onClick={handleRunTest}
                 disabled={testing}
-                className="btn-primary py-2 px-4 text-xs"
+                className="btn-amber py-2 px-4 text-xs"
               >
-                <Play className="w-3.5 h-3.5 text-[#F59E0B]" />
-                <span>{testing ? 'Exécution du test...' : 'Lancer le test'}</span>
+                <Play className="w-3.5 h-3.5 text-white" />
+                <span>{testing ? 'Exécution du test...' : 'Lancer le test (Preuve)'}</span>
               </button>
             </div>
 
             {room.testOutput ? (
               <pre className={`p-4 rounded-2xl font-mono text-xs overflow-x-auto border ${
                 room.testStatus === 'passed'
-                  ? 'bg-emerald-50 text-[#0F766E] border-emerald-200'
-                  : 'bg-red-50 text-[#E4572E] border-red-200'
+                  ? 'bg-emerald-950 text-emerald-300 border-emerald-500/40 shadow-inner'
+                  : 'bg-red-950 text-red-200 border-red-500/40 shadow-inner'
               }`}>
                 <code>{room.testOutput}</code>
               </pre>
             ) : (
               <p className="text-xs text-slate-500 italic p-3.5 bg-slate-50 rounded-2xl border border-slate-100 font-medium">
-                Clique sur "Lancer le test" pour vérifier si le correctif passe au vert.
+                Clique sur "Lancer le test" pour vérifier si le correctif passe au vert et déclencher le ressort ambre.
               </p>
             )}
           </div>
@@ -348,12 +393,12 @@ export const CodeFlashPage: React.FC<CodeFlashPageProps> = ({ currentUser }) => 
           <div className="bg-white rounded-3xl border border-[#E2E8F0] shadow-sm p-4 flex flex-col h-[480px]">
             <div className="pb-3 border-b border-slate-100 flex items-center justify-between mb-3">
               <div className="flex items-center gap-2">
-                <MessageSquare className="w-4 h-4 text-[#2563EB]" />
+                <MessageSquare className="w-4 h-4 text-[#0F6E56]" />
                 <h4 className="text-xs font-bold text-[#0F172A] uppercase tracking-wider">
-                  Chat de session
+                  Chat de session CodeFlash
                 </h4>
               </div>
-              <span className="text-[10px] text-slate-400 font-bold">{room.chat.length} message(s)</span>
+              <span className="text-[10px] text-slate-400 font-bold">{room.chat.length} msg</span>
             </div>
 
             <div className="flex-1 overflow-y-auto space-y-3 pr-1 text-xs font-medium">
@@ -362,7 +407,7 @@ export const CodeFlashPage: React.FC<CodeFlashPageProps> = ({ currentUser }) => 
                 const isSys = msg.senderId === 'system';
                 if (isSys) {
                   return (
-                    <div key={msg.id} className="p-2.5 bg-blue-50 rounded-xl text-center text-[11px] text-[#2563EB] font-bold border border-blue-100">
+                    <div key={msg.id} className="p-2.5 bg-emerald-50 rounded-xl text-center text-[11px] text-[#0F6E56] font-bold border border-emerald-200">
                       {msg.text}
                     </div>
                   );
@@ -373,8 +418,8 @@ export const CodeFlashPage: React.FC<CodeFlashPageProps> = ({ currentUser }) => 
                     <div
                       className={`p-3 rounded-2xl max-w-[85%] leading-relaxed ${
                         isMe
-                          ? 'bg-[#2563EB] text-white rounded-tr-none'
-                          : 'bg-slate-100 text-slate-800 rounded-tl-none'
+                          ? 'bg-[#0F6E56] text-white rounded-tr-none shadow-sm'
+                          : 'bg-[#F6F8F7] text-slate-800 rounded-tl-none border border-slate-200/80'
                       }`}
                     >
                       {msg.text}
@@ -391,44 +436,44 @@ export const CodeFlashPage: React.FC<CodeFlashPageProps> = ({ currentUser }) => 
                 value={chatInput}
                 onChange={(e) => setChatInput(e.target.value)}
                 placeholder="Écris un message..."
-                className="flex-1 px-3.5 py-2 bg-[#F8FAFC] border border-slate-300 rounded-xl text-xs font-medium focus:outline-none focus:border-[#2563EB]"
+                className="flex-1 px-3.5 py-2 bg-[#F6F8F7] border border-slate-300 rounded-xl text-xs font-medium focus:outline-none focus:border-[#0F6E56]"
               />
               <button
                 type="submit"
                 className="btn-primary p-2 rounded-xl"
               >
-                <Send className="w-4 h-4 text-[#F59E0B]" />
+                <Send className="w-4 h-4 text-white" />
               </button>
             </form>
           </div>
 
           {/* Double Agreement Card */}
-          <div className="bg-[#0F172A] p-5 rounded-3xl text-white space-y-3 shadow-xl border border-slate-800">
+          <div className="bg-[#0A1118] p-5 rounded-3xl text-white space-y-3 shadow-xl border border-[#1E2E40]">
             <h4 className="font-extrabold text-sm flex items-center gap-2 text-white">
-              <ShieldCheck className="w-4 h-4 text-[#2563EB]" />
-              <span>Publication de la fiche solution</span>
+              <ShieldCheck className="w-4 h-4 text-emerald-400" />
+              <span>Publication (Double Accord)</span>
             </h4>
             <p className="text-xs text-slate-300 font-medium">
-              La fiche n est publiée qu avec l accord des deux participants.
+              La fiche n est rendue publique que si le demandeur ET l aidant cliquent sur leur accord.
             </p>
 
             <div className="space-y-2 text-xs">
-              <div className="flex items-center justify-between p-2.5 bg-slate-800/80 rounded-xl border border-slate-700 font-medium">
+              <div className="flex items-center justify-between p-2.5 bg-[#101A24] rounded-xl border border-[#1E2E40] font-medium">
                 <span>Accord Demandeur ({room.requesterName})</span>
                 {room.requesterApproved ? (
-                  <span className="font-bold text-[#F59E0B] flex items-center gap-1">
-                    <Check className="w-3.5 h-3.5" /> OK
+                  <span className="font-black text-[#F2A93B] flex items-center gap-1">
+                    <Check className="w-3.5 h-3.5" /> Accord Donné
                   </span>
                 ) : (
                   <span className="text-slate-400">En attente</span>
                 )}
               </div>
 
-              <div className="flex items-center justify-between p-2.5 bg-slate-800/80 rounded-xl border border-slate-700 font-medium">
+              <div className="flex items-center justify-between p-2.5 bg-[#101A24] rounded-xl border border-[#1E2E40] font-medium">
                 <span>Accord Aidant ({room.helperName})</span>
                 {room.helperApproved ? (
-                  <span className="font-bold text-[#F59E0B] flex items-center gap-1">
-                    <Check className="w-3.5 h-3.5" /> OK
+                  <span className="font-black text-[#F2A93B] flex items-center gap-1">
+                    <Check className="w-3.5 h-3.5" /> Accord Donné
                   </span>
                 ) : (
                   <span className="text-slate-400">En attente</span>
@@ -438,14 +483,14 @@ export const CodeFlashPage: React.FC<CodeFlashPageProps> = ({ currentUser }) => 
 
             <button
               onClick={handleToggleApproval}
-              className={`w-full py-2.5 rounded-xl font-bold text-xs shadow transition-all ${
+              className={`w-full py-2.5 rounded-xl font-black text-xs shadow-lg transition-all ${
                 (isRequester && room.requesterApproved) || (!isRequester && room.helperApproved)
-                  ? 'bg-amber-500 text-slate-950 hover:bg-amber-400'
+                  ? 'btn-amber justify-center'
                   : 'btn-primary justify-center'
               }`}
             >
               {(isRequester && room.requesterApproved) || (!isRequester && room.helperApproved)
-                ? 'Mon accord est donné (Cliquer pour annuler)'
+                ? 'Mon accord est validé ✓'
                 : 'Donner mon accord pour publier la fiche'}
             </button>
           </div>
@@ -454,18 +499,18 @@ export const CodeFlashPage: React.FC<CodeFlashPageProps> = ({ currentUser }) => 
 
       {/* Publish Modal */}
       {showPublishModal && (
-        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 animate-page-enter">
-          <div className="bg-white rounded-3xl shadow-2xl max-w-lg w-full p-6 md:p-8 border border-slate-200 space-y-4">
+        <div className="fixed inset-0 z-50 bg-[#0A1118]/70 backdrop-blur-md flex items-center justify-center p-4 animate-page-enter">
+          <div className="bg-white rounded-3xl shadow-2xl max-w-lg w-full p-6 md:p-8 border border-emerald-500/20 space-y-4">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-2xl bg-amber-100 text-[#F59E0B] border border-amber-300 flex items-center justify-center">
-                <Award className="w-6 h-6 text-amber-700" />
+              <div className="w-12 h-12 rounded-2xl bg-amber-50 text-[#F2A93B] border border-amber-300 flex items-center justify-center shadow-sm">
+                <Award className="w-6 h-6 text-[#F2A93B]" />
               </div>
               <div>
-                <h3 className="text-lg font-extrabold text-[#0F172A]">
-                  Double accord confirmé ! Éditer la fiche
+                <h3 className="text-lg font-black text-[#0F172A] tracking-tight">
+                  Double accord validé ! Publier la fiche
                 </h3>
                 <p className="text-xs text-slate-500 font-medium">
-                  Cette fiche intégrera le savoir partagé et votre Passeport respectif.
+                  Cette fiche enrichit le savoir partagé et sera liée à vos deux Passeports.
                 </p>
               </div>
             </div>
@@ -477,7 +522,7 @@ export const CodeFlashPage: React.FC<CodeFlashPageProps> = ({ currentUser }) => 
                   type="text"
                   value={solTitle}
                   onChange={(e) => setSolTitle(e.target.value)}
-                  className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs font-semibold"
+                  className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs font-semibold focus:outline-none focus:border-[#0F6E56]"
                   required
                 />
               </div>
@@ -488,7 +533,7 @@ export const CodeFlashPage: React.FC<CodeFlashPageProps> = ({ currentUser }) => 
                   value={solProblem}
                   onChange={(e) => setSolProblem(e.target.value)}
                   rows={2}
-                  className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs font-medium"
+                  className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs font-medium focus:outline-none focus:border-[#0F6E56]"
                   required
                 ></textarea>
               </div>
@@ -500,7 +545,7 @@ export const CodeFlashPage: React.FC<CodeFlashPageProps> = ({ currentUser }) => 
                   value={solCause}
                   onChange={(e) => setSolCause(e.target.value)}
                   placeholder="ex: Middleware CORS manquant sur la route Express"
-                  className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs font-medium"
+                  className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs font-medium focus:outline-none focus:border-[#0F6E56]"
                 />
               </div>
 
@@ -511,7 +556,7 @@ export const CodeFlashPage: React.FC<CodeFlashPageProps> = ({ currentUser }) => 
                   onChange={(e) => setSolSolution(e.target.value)}
                   rows={2}
                   placeholder="ex: Ajout du middleware app.use(cors()) et validation du test."
-                  className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs font-medium"
+                  className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs font-medium focus:outline-none focus:border-[#0F6E56]"
                   required
                 ></textarea>
               </div>

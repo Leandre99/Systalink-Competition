@@ -11,6 +11,7 @@ import {
   X,
   Kanban,
   Share2,
+  Sparkles,
 } from 'lucide-react';
 import { Project, User } from '@shared/index';
 import { apiFetch } from '../lib/api';
@@ -159,7 +160,7 @@ export const ProjectsPage: React.FC<ProjectsPageProps> = ({ currentUser }) => {
     return (
       <div className="max-w-5xl mx-auto space-y-8 animate-page-enter">
         <div className="flex items-center justify-between">
-          <Link to="/projects" className="inline-flex items-center gap-1.5 text-xs font-bold text-slate-600 hover:text-[#2563EB]">
+          <Link to="/projects" className="inline-flex items-center gap-1.5 text-xs font-bold text-slate-600 hover:text-[#0F6E56] transition-colors">
             <ArrowLeft className="w-4 h-4" />
             <span>Tous les projets</span>
           </Link>
@@ -179,22 +180,22 @@ export const ProjectsPage: React.FC<ProjectsPageProps> = ({ currentUser }) => {
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-6 border-b border-slate-100">
             <div>
               <div className="flex items-center gap-2 mb-1">
-                <span className="px-2.5 py-0.5 bg-[#EFF6FF] text-[#2563EB] text-xs font-extrabold rounded-full border border-blue-200">
+                <span className="px-3 py-1 bg-emerald-50 text-[#0F6E56] text-xs font-black rounded-full border border-emerald-200">
                   {proj.city}
                 </span>
                 <span className="text-xs text-slate-400 font-medium">
                   Créé le {new Date(proj.createdAt).toLocaleDateString('fr-FR')}
                 </span>
               </div>
-              <h2 className="text-2xl font-extrabold text-[#0F172A] tracking-tight">{proj.name}</h2>
-              <p className="text-xs text-slate-500 font-medium mt-0.5">Porté par <strong className="text-slate-800">{proj.authorName}</strong></p>
+              <h2 className="text-2xl font-black text-[#0F172A] tracking-tight">{proj.name}</h2>
+              <p className="text-xs text-slate-500 font-medium mt-0.5">Porté par <strong className="text-slate-900">{proj.authorName}</strong></p>
             </div>
 
             <button
               onClick={() => setJoinProject(proj)}
-              className="btn-primary py-3 px-6 text-xs"
+              className="btn-amber py-3 px-6 text-xs shadow-glow-amber"
             >
-              <Users className="w-4 h-4 text-[#F59E0B]" />
+              <Users className="w-4 h-4 text-white" />
               <span>Demander à rejoindre</span>
             </button>
           </div>
@@ -203,14 +204,14 @@ export const ProjectsPage: React.FC<ProjectsPageProps> = ({ currentUser }) => {
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
             <div className="space-y-2">
-              <h4 className="text-xs font-bold text-slate-700 uppercase tracking-wider">Liens externes :</h4>
+              <h4 className="text-xs font-bold text-slate-700 uppercase tracking-wider">Liens du projet :</h4>
               <div className="flex flex-wrap gap-3">
                 {proj.demoUrl && (
                   <a
                     href={proj.demoUrl}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="inline-flex items-center gap-1.5 text-xs font-bold text-[#2563EB] hover:underline"
+                    className="inline-flex items-center gap-1.5 text-xs font-bold text-[#0F6E56] hover:underline"
                   >
                     <ExternalLink className="w-4 h-4" />
                     <span>Démo en ligne</span>
@@ -224,7 +225,7 @@ export const ProjectsPage: React.FC<ProjectsPageProps> = ({ currentUser }) => {
                     className="inline-flex items-center gap-1.5 text-xs font-bold text-slate-800 hover:underline"
                   >
                     <Github className="w-4 h-4" />
-                    <span>Dépôt Git</span>
+                    <span>Dépôt GitHub / GitLab</span>
                   </a>
                 )}
               </div>
@@ -234,7 +235,7 @@ export const ProjectsPage: React.FC<ProjectsPageProps> = ({ currentUser }) => {
               <h4 className="text-xs font-bold text-slate-700 uppercase tracking-wider">Rôles recherchés :</h4>
               <div className="flex flex-wrap gap-1.5">
                 {proj.rolesNeeded.map((r, i) => (
-                  <span key={i} className="px-2.5 py-1 bg-[#EFF6FF] text-[#2563EB] text-xs font-extrabold rounded-lg border border-blue-200">
+                  <span key={i} className="px-2.5 py-1 bg-amber-50 text-amber-800 text-xs font-black rounded-lg border border-amber-200">
                     {r}
                   </span>
                 ))}
@@ -245,9 +246,9 @@ export const ProjectsPage: React.FC<ProjectsPageProps> = ({ currentUser }) => {
 
         <div className="bg-white rounded-3xl p-6 md:p-8 border border-[#E2E8F0] shadow-sm space-y-6">
           <div className="flex items-center justify-between">
-            <h3 className="text-lg font-extrabold text-[#0F172A] flex items-center gap-2">
-              <Kanban className="w-5 h-5 text-[#2563EB]" />
-              <span>Tableau de tâches du chantier</span>
+            <h3 className="text-lg font-black text-[#0F172A] flex items-center gap-2">
+              <Kanban className="w-5 h-5 text-[#0F6E56]" />
+              <span>Tableau de tâches Kanban du chantier</span>
             </h3>
 
             <div className="flex items-center gap-2">
@@ -256,11 +257,11 @@ export const ProjectsPage: React.FC<ProjectsPageProps> = ({ currentUser }) => {
                 value={newTaskTitle}
                 onChange={(e) => setNewTaskTitle(e.target.value)}
                 placeholder="Nouvelle tâche..."
-                className="px-3 py-1.5 bg-[#F8FAFC] border border-slate-300 rounded-xl text-xs font-medium focus:outline-none focus:border-[#2563EB]"
+                className="px-3.5 py-2 bg-[#F8FAF9] border border-slate-300 rounded-xl text-xs font-medium focus:outline-none focus:border-[#0F6E56]"
               />
               <button
                 onClick={() => handleAddTask(proj.id)}
-                className="btn-primary py-1.5 px-3 text-xs"
+                className="btn-primary py-2 px-3.5 text-xs"
               >
                 + Ajouter
               </button>
@@ -269,9 +270,9 @@ export const ProjectsPage: React.FC<ProjectsPageProps> = ({ currentUser }) => {
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {[
-              { key: 'todo' as const, label: 'À faire', bg: 'bg-slate-50 border-slate-200 text-slate-700' },
-              { key: 'in_progress' as const, label: 'En cours', bg: 'bg-amber-50 border-amber-200 text-amber-900' },
-              { key: 'done' as const, label: 'Terminé', bg: 'bg-emerald-50 border-emerald-200 text-[#0F766E]' },
+              { key: 'todo' as const, label: 'À faire', bg: 'bg-[#F8FAF9] border-slate-200 text-slate-700' },
+              { key: 'in_progress' as const, label: 'En cours', bg: 'bg-amber-50/50 border-amber-200 text-amber-900' },
+              { key: 'done' as const, label: 'Terminé', bg: 'bg-emerald-50/50 border-emerald-200 text-[#0F6E56]' },
             ].map((col) => {
               const colTasks = proj.tasks.filter((t) => t.status === col.key);
               return (
@@ -288,14 +289,14 @@ export const ProjectsPage: React.FC<ProjectsPageProps> = ({ currentUser }) => {
                       <p className="text-[11px] text-slate-400 italic text-center py-4 font-medium">Aucune tâche</p>
                     ) : (
                       colTasks.map((t) => (
-                        <div key={t.id} className="bg-white p-3 rounded-xl border border-slate-200 shadow-sm space-y-2">
+                        <div key={t.id} className="bg-white p-3.5 rounded-xl border border-slate-200 shadow-sm space-y-2">
                           <p className="text-xs font-bold text-[#0F172A]">{t.title}</p>
                           <div className="flex items-center justify-between text-[10px] text-slate-400 font-medium">
                             <span>{t.assigneeName || 'Non assigné'}</span>
                             <select
                               value={t.status}
                               onChange={(e) => handleUpdateTaskStatus(proj.id, t.id, e.target.value as any)}
-                              className="px-1.5 py-0.5 bg-slate-50 border border-slate-200 rounded text-[10px] font-bold text-slate-700"
+                              className="px-2 py-0.5 bg-[#F8FAF9] border border-slate-200 rounded text-[10px] font-bold text-slate-700"
                             >
                               <option value="todo">À faire</option>
                               <option value="in_progress">En cours</option>
@@ -319,15 +320,15 @@ export const ProjectsPage: React.FC<ProjectsPageProps> = ({ currentUser }) => {
     <div className="space-y-8 animate-page-enter">
       <div className="bg-white p-6 rounded-3xl border border-[#E2E8F0] shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h3 className="text-xl font-extrabold text-[#0F172A]">Vitrine des projets KoraDevs</h3>
-          <p className="text-xs text-slate-500 mt-0.5 font-medium">Explore les initiatives locales, propose tes compétences ou lance ton propre projet.</p>
+          <h3 className="text-xl font-black text-[#0F172A] tracking-tight">Vitrine des projets KoraDevs</h3>
+          <p className="text-xs text-slate-500 mt-0.5 font-medium">Explore les initiatives tech de la communauté, propose tes compétences ou lance ton propre chantier.</p>
         </div>
 
         <button
           onClick={() => setShowCreateModal(true)}
           className="btn-primary py-2.5 px-5 text-xs"
         >
-          <Plus className="w-4 h-4 text-[#F59E0B]" />
+          <Plus className="w-4 h-4 text-white" />
           <span>Publier un projet</span>
         </button>
       </div>
@@ -354,19 +355,19 @@ export const ProjectsPage: React.FC<ProjectsPageProps> = ({ currentUser }) => {
             >
               <div>
                 <div className="flex items-center justify-between gap-2 mb-2">
-                  <span className="px-2.5 py-0.5 bg-[#EFF6FF] text-[#2563EB] text-xs font-extrabold rounded-full border border-blue-200">
+                  <span className="px-3 py-1 bg-emerald-50 text-[#0F6E56] text-xs font-black rounded-full border border-emerald-200">
                     {proj.city}
                   </span>
                   <span className="text-xs text-slate-400 font-semibold">{proj.membersCount} membre(s)</span>
                 </div>
 
                 <Link to={`/projects/${proj.id}`}>
-                  <h3 className="text-lg font-extrabold text-[#0F172A] hover:text-[#2563EB] transition-colors mb-2">
+                  <h3 className="text-lg font-black text-[#0F172A] hover:text-[#0F6E56] transition-colors mb-2">
                     {proj.name}
                   </h3>
                 </Link>
 
-                <p className="text-xs text-slate-600 line-clamp-3 mb-4 font-medium">
+                <p className="text-xs text-slate-600 line-clamp-3 mb-4 font-medium leading-relaxed">
                   {proj.description}
                 </p>
 
@@ -374,7 +375,7 @@ export const ProjectsPage: React.FC<ProjectsPageProps> = ({ currentUser }) => {
                   <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Rôles recherchés :</span>
                   <div className="flex flex-wrap gap-1">
                     {proj.rolesNeeded.map((r, i) => (
-                      <span key={i} className="px-2 py-0.5 bg-[#EFF6FF] text-[#2563EB] text-[11px] font-extrabold rounded border border-blue-200">
+                      <span key={i} className="px-2.5 py-0.5 bg-amber-50 text-amber-800 text-[11px] font-black rounded border border-amber-200">
                         {r}
                       </span>
                     ))}
@@ -385,14 +386,14 @@ export const ProjectsPage: React.FC<ProjectsPageProps> = ({ currentUser }) => {
               <div className="pt-4 border-t border-slate-100 flex items-center justify-between gap-3">
                 <Link
                   to={`/projects/${proj.id}`}
-                  className="text-xs font-bold text-[#2563EB] hover:underline"
+                  className="text-xs font-bold text-[#0F6E56] hover:underline"
                 >
                   Voir les détails & le Kanban →
                 </Link>
 
                 <button
                   onClick={() => setJoinProject(proj)}
-                  className="btn-primary py-2 px-4 text-xs"
+                  className="btn-amber py-2 px-4 text-xs shadow-sm"
                 >
                   Rejoindre
                 </button>
@@ -403,13 +404,13 @@ export const ProjectsPage: React.FC<ProjectsPageProps> = ({ currentUser }) => {
       )}
 
       {showCreateModal && (
-        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 animate-page-enter">
-          <div className="bg-white rounded-3xl shadow-2xl max-w-md w-full p-6 border border-slate-200 relative">
+        <div className="fixed inset-0 z-50 bg-[#0A1118]/70 backdrop-blur-md flex items-center justify-center p-4 animate-page-enter">
+          <div className="bg-white rounded-3xl shadow-2xl max-w-md w-full p-6 border border-emerald-500/20 relative">
             <button onClick={() => setShowCreateModal(false)} className="absolute top-5 right-5 text-slate-400 hover:text-slate-700">
               <X className="w-5 h-5" />
             </button>
 
-            <h3 className="text-lg font-extrabold text-[#0F172A] mb-4">Publier un projet sur la vitrine</h3>
+            <h3 className="text-lg font-black text-[#0F172A] mb-4">Publier un projet sur la vitrine</h3>
 
             <form onSubmit={handleCreateProject} className="space-y-4">
               <div>
@@ -419,7 +420,7 @@ export const ProjectsPage: React.FC<ProjectsPageProps> = ({ currentUser }) => {
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   placeholder="ex: KoraCode CLI & SDK"
-                  className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs font-semibold"
+                  className="w-full px-3 py-2 bg-[#F8FAF9] border border-slate-300 rounded-xl text-xs font-semibold focus:outline-none focus:border-[#0F6E56]"
                   required
                 />
               </div>
@@ -431,7 +432,7 @@ export const ProjectsPage: React.FC<ProjectsPageProps> = ({ currentUser }) => {
                   onChange={(e) => setDescription(e.target.value)}
                   rows={3}
                   placeholder="Présente l objectif et l impact du projet..."
-                  className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs font-medium"
+                  className="w-full px-3 py-2 bg-[#F8FAF9] border border-slate-300 rounded-xl text-xs font-medium focus:outline-none focus:border-[#0F6E56]"
                   required
                 ></textarea>
               </div>
@@ -443,7 +444,7 @@ export const ProjectsPage: React.FC<ProjectsPageProps> = ({ currentUser }) => {
                   value={rolesNeededText}
                   onChange={(e) => setRolesNeededText(e.target.value)}
                   placeholder="ex: Développeur Flutter, Designer UI/UX"
-                  className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs font-medium"
+                  className="w-full px-3 py-2 bg-[#F8FAF9] border border-slate-300 rounded-xl text-xs font-medium focus:outline-none focus:border-[#0F6E56]"
                 />
               </div>
 
@@ -455,7 +456,7 @@ export const ProjectsPage: React.FC<ProjectsPageProps> = ({ currentUser }) => {
                     value={demoUrl}
                     onChange={(e) => setDemoUrl(e.target.value)}
                     placeholder="https://demo.app"
-                    className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs font-medium"
+                    className="w-full px-3 py-2 bg-[#F8FAF9] border border-slate-300 rounded-xl text-xs font-medium focus:outline-none focus:border-[#0F6E56]"
                   />
                 </div>
                 <div>
@@ -465,7 +466,7 @@ export const ProjectsPage: React.FC<ProjectsPageProps> = ({ currentUser }) => {
                     value={repoUrl}
                     onChange={(e) => setRepoUrl(e.target.value)}
                     placeholder="https://github.com/..."
-                    className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs font-medium"
+                    className="w-full px-3 py-2 bg-[#F8FAF9] border border-slate-300 rounded-xl text-xs font-medium focus:outline-none focus:border-[#0F6E56]"
                   />
                 </div>
               </div>
@@ -492,20 +493,20 @@ export const ProjectsPage: React.FC<ProjectsPageProps> = ({ currentUser }) => {
       )}
 
       {joinProject && (
-        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 animate-page-enter">
-          <div className="bg-white rounded-3xl shadow-2xl max-w-md w-full p-6 border border-slate-200 relative">
+        <div className="fixed inset-0 z-50 bg-[#0A1118]/70 backdrop-blur-md flex items-center justify-center p-4 animate-page-enter">
+          <div className="bg-white rounded-3xl shadow-2xl max-w-md w-full p-6 border border-emerald-500/20 relative">
             <button onClick={() => setJoinProject(null)} className="absolute top-5 right-5 text-slate-400 hover:text-slate-700">
               <X className="w-5 h-5" />
             </button>
 
-            <h3 className="text-lg font-extrabold text-[#0F172A] mb-1">
+            <h3 className="text-lg font-black text-[#0F172A] mb-1">
               Demande d adhésion à {joinProject.name}
             </h3>
             <p className="text-xs text-slate-500 mb-4 font-medium">Un message sera transmis à l auteur du projet.</p>
 
             {joinSuccess ? (
               <div className="py-6 text-center space-y-2">
-                <CheckCircle2 className="w-10 h-10 text-[#0F766E] mx-auto" />
+                <CheckCircle2 className="w-10 h-10 text-[#0F6E56] mx-auto" />
                 <p className="text-xs font-bold text-[#0F172A]">Demande envoyée avec succès !</p>
               </div>
             ) : (
@@ -516,7 +517,7 @@ export const ProjectsPage: React.FC<ProjectsPageProps> = ({ currentUser }) => {
                     value={joinMessage}
                     onChange={(e) => setJoinMessage(e.target.value)}
                     rows={4}
-                    className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs font-medium"
+                    className="w-full px-3 py-2 bg-[#F8FAF9] border border-slate-300 rounded-xl text-xs font-medium focus:outline-none focus:border-[#0F6E56]"
                     required
                   ></textarea>
                 </div>
