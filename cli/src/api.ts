@@ -1,4 +1,4 @@
-import type { AuthConfigResponse, CreatedRequest, PublicUser, SessionResponse, SosRequest } from '@sos/shared';
+import type { AuthConfigResponse, CreatedRequest, PublicUser, SessionResponse, SolutionHit, SosRequest } from '@sos/shared';
 
 export class ApiError extends Error {
   constructor(
@@ -45,6 +45,9 @@ export function createApi(server: string, token?: string, fetchImpl: typeof fetc
     logout: () => call<void>('POST', '/auth/logout'),
     me: () => call<PublicUser>('GET', '/me'),
     sendRequest: (request: SosRequest) => call<CreatedRequest>('POST', '/requests', request),
+    closeRequest: (id: string) => call<void>('POST', `/requests/${encodeURIComponent(id)}/close`),
+    searchSolutions: (q: string, tech: string[]) =>
+      call<SolutionHit[]>('GET', `/solutions/search?${new URLSearchParams({ q, ...(tech.length ? { tech: tech.join(',') } : {}) })}`),
   };
 }
 

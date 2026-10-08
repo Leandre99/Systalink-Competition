@@ -13,6 +13,7 @@
   "dependencies": {
     "@sos/shared": "0.1.0",
     "ignore": "^6.0.2",
-    "picocolors": "^1.1.1"
+    "picocolors": "^1.1.1",
+    "ws": "^8.18.3"
   }
 }

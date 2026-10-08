@@ -14,7 +14,7 @@ export interface User {
 
 export type UserInput = Omit<User, 'id' | 'createdAt'>;
 
-export type RequestStatus = 'ouverte' | 'fermee';
+export type RequestStatus = 'ouverte' | 'acceptee' | 'fermee';
 
 export interface StoredRequest {
   id: string;
@@ -24,6 +24,8 @@ export interface StoredRequest {
   command: string;
   exitCode: number;
   payload: SosRequest;
+  helperId: string | null;
+  acceptedAt: Date | null;
   createdAt: Date;
   expiresAt: Date;
 }
@@ -34,6 +36,18 @@ export interface NewRequest {
   createdAt: Date;
   expiresAt: Date;
 }
+
+export interface Solution {
+  id: string;
+  title: string;
+  error: string;
+  cause: string;
+  fix: string;
+  tech: string[];
+  createdAt: Date;
+}
+
+export type NewSolution = Omit<Solution, 'createdAt'>;
 
 export interface PurgeResult {
   requests: number;
@@ -51,6 +65,19 @@ export interface Store {
   /** Expired requests are invisible even before the purge runs. */
   getRequest(id: string, now: Date): Promise<StoredRequest | null>;
   listRequests(userId: string, now: Date): Promise<StoredRequest[]>;
+  /** Open (not accepted, not closed, not expired) requests, oldest first. */
+  listOpenRequests(now: Date): Promise<StoredRequest[]>;
+  /** Atomic: only the first helper wins. Returns null if the request is no longer open. */
+  acceptRequest(id: string, helperId: string, now: Date): Promise<StoredRequest | null>;
+  /** Closes an open or accepted request of this user. Returns false if there was nothing to close. */
+  closeRequest(id: string, userId: string): Promise<boolean>;
+  getUser(id: string): Promise<User | null>;
+  setHelperTech(userId: string, tech: string[]): Promise<void>;
+  getHelperTech(userId: string): Promise<string[]>;
+  /** Inserts the sheets that do not exist yet (by id). */
+  seedSolutions(solutions: NewSolution[]): Promise<void>;
+  /** Sheets containing at least one of these lowercase words (scoring is done by the caller). */
+  findSolutionCandidates(words: string[], limit: number): Promise<Solution[]>;
   purgeExpired(now: Date): Promise<PurgeResult>;
   close(): Promise<void>;
 }

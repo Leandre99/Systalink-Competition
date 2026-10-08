@@ -10,7 +10,8 @@ Projet CADEV 2026. Le concept complet est dans [`docs/sos-dev-concept-v2.pdf`](d
 | --- | --- | --- |
 | `shared/` | Code commun : masquage des secrets, lecture des traces d'erreur, détection de la techno, format de la demande (Zod) | Étape 1 |
 | `cli/` | La commande `sos` : lance ton programme, capture l'erreur, masque les secrets, affiche l'aperçu | Étape 1 |
-| `server/` | API NestJS + PostgreSQL : connexion GitHub, réception des demandes, effacement du code après 24 h | Étape 2 (WebSocket, Radar : étape 3) |
+| `server/` | API NestJS + PostgreSQL : connexion GitHub, demandes, fiches, Radar temps réel (WebSocket `/ws`) | Étapes 2 et 3 |
+| `web/` | Interface web (Vite + React) : le Radar des aidants | Étape 3 (salle SOS : étape 4) |
 | `web/` | Site Next.js (Radar, Salle SOS, fiches, profil) | Étape 2-3 |
 | `examples/demo/` | Petit programme qui plante, avec de faux secrets, pour la démo | |
 | `scripts/audit-licenses.mjs` | Audit des licences (règlement, article 6) | |
@@ -50,6 +51,21 @@ sos login --dev awa        # mode démo, sans GitHub
 cd examples/demo && sos npm start
 ```
 
+### Le Radar (étape 3)
+
+```bash
+npm run web      # http://localhost:5173 (le serveur doit tourner sur :4000)
+```
+
+1. L'aidant se connecte, coche ses technos et clique sur « Me rendre disponible ».
+2. Le demandeur lance `sos npm start`. `sos` cherche d'abord des fiches qui ressemblent à l'erreur ; si aucune ne règle le problème, la demande part et le terminal affiche l'avancement en direct.
+3. Les aidants de la même techno sont alertés tout de suite, ceux des technos proches après 2 minutes (`SOS_WIDEN_AFTER_SECONDS`), tous les aidants disponibles après 5 minutes (`SOS_PUBLIC_AFTER_SECONDS`, file publique).
+4. Le premier qui clique sur « Accepter » prend la demande ; les autres la voient disparaître, et le terminal du demandeur affiche qui arrive. Ctrl+C dans le terminal annule la demande.
+
+Les alertes ne montrent que la techno, la commande et la ligne d'erreur (déjà masquée). Le code n'est visible que dans la salle SOS (étape 4).
+
+Pour une démo rapide : `SOS_WIDEN_AFTER_SECONDS=10 SOS_PUBLIC_AFTER_SECONDS=20 npm run server`.
+
 ### Connexion GitHub
 
 `sos login` utilise le « device flow » de GitHub : le terminal affiche un code à saisir sur github.com, aucun mot de passe ne passe par le terminal. Il faut une OAuth App GitHub (Settings → Developer settings → OAuth Apps) avec **Enable Device Flow** coché, et mettre son Client ID dans `GITHUB_CLIENT_ID` (ce n'est pas un secret). Le serveur vérifie le jeton GitHub une fois, ne le garde pas, et donne à `sos` son propre jeton de session (stocké dans `~/.sos/config.json`, lisible par toi seul ; le serveur n'en garde que l'empreinte SHA-256).
@@ -66,6 +82,9 @@ Le mode démo (`sos login --dev <pseudo>`) est actif par défaut hors production
 | `POST /auth/logout` · `GET /me` | Déconnexion, compte connecté |
 | `POST /requests` | Envoyer une demande (3 par heure maximum) |
 | `GET /requests` · `GET /requests/:id` | Mes demandes (le code n'est visible que par son auteur) |
+| `POST /requests/:id/close` | Annuler ma demande |
+| `GET /solutions/search?q=…&tech=…` | Chercher des fiches (public) |
+| WebSocket `/ws` | Radar : `auth`, `disponible`, `pause`, `accepter` (aidant) · `suivre` (demandeur) |
 
 À la réception, le serveur refait le masquage des secrets (au cas où le CLI serait ancien ou contourné), refuse les fichiers sensibles et les chemins hors du projet, et fixe l'effacement du code à 24 h maximum. Une purge tourne toutes les 10 minutes.
 
@@ -89,9 +108,10 @@ Ce qu'elle fait :
 2. Si la commande plante, récupère les 200 dernières lignes de la sortie, les fichiers cités dans la trace d'erreur, les fichiers de dépendances (`package.json`, `requirements.txt`…) et les fichiers ajoutés avec `--add`. Limite : 10 fichiers, 200 Ko.
 3. N'envoie jamais `.env*`, `*.pem`, `*.key`, les clés SSH, `.npmrc`… même avec `--add`. Respecte `.gitignore`.
 4. Masque les secrets **sur ta machine** : clés connues (AWS, GitHub, Stripe, IA, Slack, Google, JWT), clés privées, mots de passe dans les URL, en-têtes `Authorization`, affectations du type `password=` ou `API_KEY =`, et les chaînes qui ont l'air aléatoires (calcul d'entropie).
-5. Affiche l'aperçu exact de la demande. Tu peux retirer des fichiers, puis tu valides.
+5. Affiche les fiches qui ressemblent à l'erreur (seule la ligne d'erreur masquée est envoyée pour cette recherche). Si l'une règle le problème, rien n'est envoyé.
+6. Affiche l'aperçu exact de la demande. Tu peux retirer des fichiers, puis tu valides.
 
-6. Envoie la demande au serveur. Si tu n'es pas connecté ou si le serveur est injoignable, elle est gardée dans `~/.sos/demandes/` et tu peux la renvoyer avec `sos send`.
+7. Envoie la demande au serveur, puis attend un aidant en direct (`--no-wait` pour ne pas attendre). Si tu n'es pas connecté ou si le serveur est injoignable, elle est gardée dans `~/.sos/demandes/` et tu peux la renvoyer avec `sos send`.
 
 ## Vérifications
 

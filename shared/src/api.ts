@@ -20,9 +20,11 @@ export interface AuthConfigResponse {
   devAuth: boolean;
 }
 
+export type RequestStatus = 'ouverte' | 'acceptee' | 'fermee';
+
 export interface RequestSummary {
   id: string;
-  status: 'ouverte' | 'fermee';
+  status: RequestStatus;
   tech: string[];
   command: string;
   exitCode: number;
@@ -41,3 +43,47 @@ export interface CreatedRequest extends RequestSummary {
 export interface RequestDetail extends RequestSummary {
   request: SosRequest;
 }
+
+/** A published solution sheet matching an error. */
+export interface SolutionHit {
+  id: string;
+  title: string;
+  error: string;
+  cause: string;
+  fix: string;
+  tech: string[];
+  /** 0..1 : share of the error's words found in the sheet. */
+  score: number;
+}
+
+/** ciblee : helpers of the same tech · elargie : close techs (after 2 min) · publique : everyone (after 5 min). */
+export type RadarStage = 'ciblee' | 'elargie' | 'publique';
+
+export interface RadarAlert {
+  requestId: string;
+  tech: string[];
+  command: string;
+  errorSummary: string;
+  files: number;
+  stage: RadarStage;
+  requester: string;
+  createdAt: string;
+}
+
+/** WebSocket `/ws`, browser → server. The first message must be `auth`. */
+export type ClientMessage =
+  | { type: 'auth'; token: string }
+  | { type: 'disponible'; tech: string[] }
+  | { type: 'pause' }
+  | { type: 'suivre'; requestId: string }
+  | { type: 'accepter'; requestId: string };
+
+export type ServerMessage =
+  | { type: 'bienvenue'; user: PublicUser }
+  | { type: 'alerte'; alert: RadarAlert }
+  | { type: 'retirer'; requestId: string; raison: 'prise' | 'fermee' | 'expiree' }
+  | { type: 'statut'; requestId: string; stage: RadarStage; alerted: number; online: number }
+  | { type: 'acceptee'; requestId: string; helper: PublicUser }
+  | { type: 'prise'; requestId: string; requester: PublicUser }
+  | { type: 'fermee'; requestId: string }
+  | { type: 'erreur'; message: string };

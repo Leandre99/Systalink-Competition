@@ -7,7 +7,7 @@ import { buildRequest, withoutFiles } from './build.js';
 import { collectFiles } from './collect.js';
 import { renderPreview } from './preview.js';
 import { runCommand } from './run.js';
-import { deliver, login, logout, send, whoami } from './account.js';
+import { deliver, findSolutions, login, logout, renderSolutions, send, waitHelper, whoami } from './account.js';
 import { ApiError } from './api.js';
 
 const { version } = createRequire(import.meta.url)('../package.json') as { version: string };
@@ -65,6 +65,18 @@ async function main(): Promise<number> {
     return result.exitCode;
   }
 
+  const hits = await findSolutions(built.request);
+  if (hits.length) {
+    console.log(renderSolutions(hits));
+    if (!args.yes && !args.dryRun && process.stdin.isTTY) {
+      const solved = await ask(pc.bold('\nUne fiche règle ton problème ? (o = oui, Entrée = appeler un humain) '));
+      if (/^(o|oui|y|yes)$/i.test(solved)) {
+        console.log(pc.green('Parfait. Rien n’a été envoyé.'));
+        return result.exitCode;
+      }
+    }
+  }
+
   console.log(renderPreview(built.request, collected.skipped, built.findings));
 
   if (args.dryRun) {
@@ -98,7 +110,8 @@ async function main(): Promise<number> {
     }
   }
 
-  await deliver(built.request);
+  const sent = await deliver(built.request);
+  if (sent && !args.noWait) await waitHelper(sent);
   return result.exitCode;
 }
 

@@ -98,3 +98,45 @@ export function detectTech(files: TechSource[]): string[] {
   }
   return [...tech];
 }
+
+/** Technologies close enough for a helper to step in when nobody answered (alert widening). */
+const RELATED: Record<string, string[]> = {
+  JavaScript: ['TypeScript', 'React', 'Vue', 'Svelte', 'Express', 'Next.js', 'Nuxt', 'Angular', 'NestJS', 'React Native'],
+  TypeScript: ['JavaScript', 'Angular', 'NestJS', 'React', 'Next.js'],
+  React: ['JavaScript', 'TypeScript', 'Next.js', 'React Native'],
+  'Next.js': ['React', 'JavaScript', 'TypeScript'],
+  'React Native': ['React', 'JavaScript'],
+  Vue: ['JavaScript', 'Nuxt'],
+  Nuxt: ['Vue', 'JavaScript'],
+  Angular: ['TypeScript', 'JavaScript'],
+  Svelte: ['JavaScript'],
+  Express: ['JavaScript', 'NestJS'],
+  NestJS: ['TypeScript', 'Express'],
+  Prisma: ['TypeScript', 'JavaScript'],
+  Python: ['Django', 'Flask', 'FastAPI'],
+  Django: ['Python'],
+  Flask: ['Python'],
+  FastAPI: ['Python'],
+  PHP: ['Laravel', 'Symfony'],
+  Laravel: ['PHP'],
+  Symfony: ['PHP'],
+  Ruby: ['Rails'],
+  Rails: ['Ruby'],
+  Java: ['Kotlin'],
+  Kotlin: ['Java'],
+  Dart: ['Flutter'],
+  Flutter: ['Dart'],
+  C: ['C++'],
+  'C++': ['C'],
+};
+
+export const KNOWN_TECH: string[] = [
+  ...new Set([...Object.values(BY_FILE).flat(), ...Object.values(BY_EXTENSION), ...Object.values(BY_DEPENDENCY)]),
+].sort((a, b) => a.localeCompare(b));
+
+/** The given technologies plus their close ones. */
+export function relatedTech(tech: string[]): string[] {
+  const result = new Set(tech);
+  for (const t of tech) RELATED[t]?.forEach((r) => result.add(r));
+  return [...result];
+}

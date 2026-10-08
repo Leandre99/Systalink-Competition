@@ -1,0 +1,35 @@
+:root {
+  font-family: system-ui, -apple-system, 'Segoe UI', sans-serif;
+  color: #e6edf3;
+  background: #0d1117;
+}
+body { margin: 0; }
+main { max-width: 860px; margin: 0 auto; padding: 24px 16px 64px; }
+h1 { margin: 0; font-size: 1.6rem; }
+h2 { font-size: 1.1rem; margin: 0 0 12px; }
+header { display: flex; align-items: center; gap: 12px; margin-bottom: 20px; }
+.who { margin-left: auto; color: #8b949e; }
+.dot { width: 10px; height: 10px; border-radius: 50%; background: #f85149; }
+.dot.on { background: #3fb950; }
+.card { background: #161b22; border: 1px solid #30363d; border-radius: 10px; padding: 16px; margin-bottom: 16px; }
+.card.narrow { max-width: 420px; margin: 80px auto; }
+.card.success { border-color: #3fb950; }
+form { display: grid; gap: 8px; }
+input { padding: 10px; border-radius: 6px; border: 1px solid #30363d; background: #0d1117; color: inherit; font-size: 1rem; }
+button { padding: 8px 14px; border-radius: 6px; border: 0; background: #238636; color: #fff; font-weight: 600; cursor: pointer; }
+button:disabled { opacity: 0.5; cursor: default; }
+button.link { background: none; color: #58a6ff; padding: 0; font-weight: 400; }
+button.big { margin-top: 16px; width: 100%; padding: 12px; font-size: 1rem; }
+button.big.off { background: #30363d; }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.chip { background: #21262d; color: #c9d1d9; font-weight: 400; border: 1px solid #30363d; }
+.chip.on { background: #1f6feb; border-color: #1f6feb; color: #fff; }
+.alert .row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.alert .row:last-child { justify-content: space-between; margin-top: 10px; }
+.stage { font-size: 0.75rem; padding: 2px 8px; border-radius: 99px; background: #1f6feb; }
+.stage.elargie { background: #9e6a03; }
+.stage.publique { background: #6e7681; }
+.tech { font-weight: 600; }
+.error-line { display: block; margin-top: 10px; padding: 10px; background: #0d1117; border-radius: 6px; color: #ff7b72; white-space: pre-wrap; word-break: break-word; }
+.hint { color: #8b949e; font-size: 0.9rem; }
+.error { color: #f85149; }

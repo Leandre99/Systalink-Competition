@@ -7,23 +7,26 @@
   "workspaces": [
     "shared",
     "cli",
-    "server"
+    "server",
+    "web"
   ],
   "engines": {
     "node": ">=20"
   },
   "scripts": {
-    "build": "tsc -b cli server",
-    "typecheck": "tsc -b cli server && tsc -p tsconfig.json",
+    "build": "tsc -b cli server && npm run build -w web",
+    "typecheck": "tsc -b cli server && tsc -p tsconfig.json && tsc -p web",
     "test": "vitest run",
     "audit:licenses": "node scripts/audit-licenses.mjs",
     "sos": "node cli/dist/index.js",
     "server": "node --env-file-if-exists=server/.env server/dist/main.js",
-    "db:up": "docker compose up -d --wait postgres"
+    "db:up": "docker compose up -d --wait postgres",
+    "web": "npm run dev -w web"
   },
   "devDependencies": {
     "@types/node": "^22.7.0",
     "typescript": "^5.6.3",
-    "vitest": "^4.1.11"
+    "vitest": "^4.1.11",
+    "@types/ws": "^8.18.1"
   }
 }

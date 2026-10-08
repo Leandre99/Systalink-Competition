@@ -1,11 +1,12 @@
 import fs from 'node:fs';
 import pc from 'picocolors';
-import { SosRequestSchema, type SosRequest } from '@sos/shared';
+import { SosRequestSchema, errorSummary, type CreatedRequest, type RadarStage, type SolutionHit, type SosRequest } from '@sos/shared';
 import { ApiError, createApi } from './api.js';
 import { CliError } from './args.js';
 import { readConfig, serverUrl, writeConfig } from './config.js';
 import { githubDeviceFlow } from './device-flow.js';
 import { saveRequest } from './store.js';
+import { waitForHelper } from './wait.js';
 
 export async function login(options: { dev?: string; server?: string }): Promise<number> {
   const config = readConfig();
@@ -59,28 +60,92 @@ export async function whoami(): Promise<number> {
   return 0;
 }
 
+/** Looks for published sheets matching the (already masked) error. Silent if the server is unreachable. */
+export async function findSolutions(request: SosRequest): Promise<SolutionHit[]> {
+  const query = errorSummary(request.output);
+  if (!query) return [];
+  try {
+    return await createApi(serverUrl()).searchSolutions(query, request.tech);
+  } catch {
+    return [];
+  }
+}
+
+export function renderSolutions(hits: SolutionHit[]): string {
+  const lines = [pc.bold('\nDes fiches ressemblent à ton erreur :')];
+  hits.forEach((hit, i) => {
+    lines.push(`  ${i + 1}. ${pc.bold(hit.title)} ${pc.dim(`(${hit.tech.join(', ')} · ${Math.round(hit.score * 100)} %)`)}`);
+    lines.push(`     ${pc.dim('Cause :')} ${hit.cause}`);
+    lines.push(`     ${pc.dim('Correction :')} ${hit.fix}`);
+  });
+  return lines.join('\n');
+}
+
+const STAGE_TEXT: Record<RadarStage, string> = {
+  ciblee: 'aidants de ta techno',
+  elargie: 'alerte élargie aux technos proches',
+  publique: 'file publique : tous les aidants en ligne la voient',
+};
+
+/** Waits in the terminal until a helper accepts. Ctrl+C closes the request. */
+export async function waitHelper(sent: CreatedRequest): Promise<number> {
+  const config = readConfig();
+  const server = serverUrl(config);
+  console.log(pc.bold('\nRecherche d’un aidant…') + pc.dim(' (Ctrl+C pour annuler)'));
+  const waiting = waitForHelper({
+    server,
+    token: config.token!,
+    requestId: sent.id,
+    onStatus: ({ stage, alerted, online }) => {
+      const who = alerted > 0 ? `${alerted} aidant(s) alerté(s)` : online > 0 ? 'aucun aidant de ta techno en ligne' : 'aucun aidant en ligne pour l’instant';
+      console.log(pc.dim(`  • ${STAGE_TEXT[stage]} : ${who}`));
+    },
+  });
+  const cancel = () => {
+    waiting.stop();
+    void createApi(server, config.token)
+      .closeRequest(sent.id)
+      .catch(() => undefined)
+      .finally(() => {
+        console.log(pc.yellow('\nDemande annulée : les aidants ne la voient plus.'));
+        process.exit(130);
+      });
+  };
+  process.once('SIGINT', cancel);
+  try {
+    const helper = await waiting.helper;
+    console.log(pc.green(`\n✔ ${helper.name ?? helper.login} (@${helper.login}) a accepté ta demande !`));
+    console.log(pc.dim('  La salle SOS (code et terminal partagés) arrive à l’étape 4.'));
+    return 0;
+  } catch (error) {
+    console.log(pc.yellow(`\n${(error as Error).message}. Ta demande reste visible des aidants.`));
+    return 1;
+  } finally {
+    process.off('SIGINT', cancel);
+  }
+}
+
 /** Sends a validated request; keeps it on disk if the server cannot take it. */
-export async function deliver(request: SosRequest): Promise<boolean> {
+export async function deliver(request: SosRequest): Promise<CreatedRequest | null> {
   const config = readConfig();
   if (!config.token) {
     const file = saveRequest(request);
     console.log(pc.yellow('\nTu n’es pas connecté : lance « sos login », puis « sos send » pour l’envoyer.'));
     console.log(pc.dim(`  La demande est gardée sur ta machine : ${file}`));
-    return false;
+    return null;
   }
   try {
     const sent = await createApi(serverUrl(config), config.token).sendRequest(request);
     console.log(pc.green(`\n✔ Demande envoyée (${sent.id.slice(0, 8)}).`));
     if (sent.secondPassMasked > 0) console.log(pc.yellow(`  Le serveur a masqué ${sent.secondPassMasked} secret(s) de plus.`));
     console.log(pc.dim(`  Ton code sera effacé du serveur au plus tard le ${new Date(sent.expiresAt).toLocaleString('fr-FR')}.`));
-    console.log(pc.dim('  Les aidants seront alertés dès l’étape 3 (Radar).'));
-    return true;
+    return sent;
   } catch (error) {
     if (!(error instanceof ApiError)) throw error;
     const file = saveRequest(request);
     console.log(pc.yellow(`\nEnvoi impossible : ${error.message}`));
     console.log(pc.dim(`  La demande est gardée sur ta machine : ${file}\n  Renvoie-la plus tard avec « sos send ${file} ».`));
-    return false;
+    return null;
   }
 }
 

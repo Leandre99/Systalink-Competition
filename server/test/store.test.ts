@@ -4,6 +4,7 @@ import { MemoryStore } from '../src/store/memory.js';
 import { migrate } from '../src/store/migrate.js';
 import { PgStore } from '../src/store/pg.js';
 import type { Store } from '../src/store/types.js';
+import { SEED_SOLUTIONS } from '../src/solutions/seed.js';
 import { payload } from './helpers.js';
 
 const HOUR = 3600_000;
@@ -49,6 +50,40 @@ function contract(name: string, setup: () => Promise<Store>) {
       expect(await store.purgeExpired(at(2))).toEqual({ requests: 1, sessions: 1 });
       expect((await store.listRequests(user.id, at(2))).map((r) => r.id)).toEqual([first.id]);
     });
+
+    it('lets only one helper accept an open request, and closes requests', async () => {
+      const koffi = await store.upsertUser({ provider: 'dev', providerId: 'koffi', login: 'koffi', name: null, avatarUrl: null });
+      const awa = await store.upsertUser({ provider: 'dev', providerId: 'awa', login: 'awa', name: null, avatarUrl: null });
+      const moussa = await store.upsertUser({ provider: 'dev', providerId: 'moussa', login: 'moussa', name: null, avatarUrl: null });
+      const a = await store.createRequest({ userId: koffi.id, payload: payload(), createdAt: t0, expiresAt: at(24) });
+      const b = await store.createRequest({ userId: koffi.id, payload: payload(), createdAt: at(0.1), expiresAt: at(24) });
+      expect((await store.listOpenRequests(t0)).map((r) => r.id)).toEqual([a.id, b.id]);
+
+      expect(await store.acceptRequest(a.id, koffi.id, t0)).toBeNull();
+      const results = await Promise.all([store.acceptRequest(a.id, awa.id, t0), store.acceptRequest(a.id, moussa.id, t0)]);
+      expect(results.filter(Boolean)).toHaveLength(1);
+      expect((await store.getRequest(a.id, t0))).toMatchObject({ status: 'acceptee', acceptedAt: t0 });
+
+      expect(await store.closeRequest(b.id, awa.id)).toBe(false);
+      expect(await store.closeRequest(b.id, koffi.id)).toBe(true);
+      expect(await store.closeRequest(b.id, koffi.id)).toBe(false);
+      expect(await store.listOpenRequests(t0)).toEqual([]);
+      expect((await store.getUser(awa.id))?.login).toBe('awa');
+    });
+
+    it('stores helper techs and finds solution candidates', async () => {
+      const awa = await store.upsertUser({ provider: 'dev', providerId: 'awa', login: 'awa', name: null, avatarUrl: null });
+      expect(await store.getHelperTech(awa.id)).toEqual([]);
+      await store.setHelperTech(awa.id, ['JavaScript']);
+      await store.setHelperTech(awa.id, ['React', 'TypeScript']);
+      expect(await store.getHelperTech(awa.id)).toEqual(['React', 'TypeScript']);
+
+      await store.seedSolutions(SEED_SOLUTIONS);
+      await store.seedSolutions(SEED_SOLUTIONS);
+      const found = await store.findSolutionCandidates(['eaddrinuse'], 20);
+      expect(found.map((s) => s.title)).toEqual([expect.stringContaining('EADDRINUSE')]);
+      expect(await store.findSolutionCandidates(['introuvablexyz'], 20)).toEqual([]);
+    });
   });
 }
 
@@ -61,7 +96,7 @@ describe.skipIf(!url)('PostgreSQL', () => {
   beforeAll(async () => {
     pool = new pg.Pool({ connectionString: url });
     await pool.query('DROP SCHEMA public CASCADE; CREATE SCHEMA public;');
-    expect(await migrate(pool)).toEqual(['001_init.sql']);
+    expect(await migrate(pool)).toEqual(['001_init.sql', '002_radar_fiches.sql']);
     expect(await migrate(pool)).toEqual([]);
   });
   afterAll(async () => {
@@ -69,7 +104,7 @@ describe.skipIf(!url)('PostgreSQL', () => {
   });
 
   contract('PgStore', async () => {
-    await pool.query('TRUNCATE requests, sessions, users CASCADE');
+    await pool.query('TRUNCATE requests, sessions, helper_profiles, solutions, users CASCADE');
     return new PgStore(pool);
   });
 });

@@ -40,3 +40,15 @@ export function extractFileRefs(output: string): FileRef[] {
   }
   return refs;
 }
+
+const ERROR_LINE = /\b\w*(?:Error|Exception)\b|^(?:error|erreur|fatal|panic)\b/i;
+
+/** The most telling line of an error output, used for alerts and to search solutions. */
+export function errorSummary(output: string, max = 200): string {
+  const lines = output
+    .split('\n')
+    .map((l) => l.trim())
+    .filter((l) => l && !/^at\s/.test(l) && !/^File "/.test(l) && !/^Traceback \(most recent/.test(l));
+  const line = lines.find((l) => ERROR_LINE.test(l)) ?? lines[lines.length - 1] ?? '';
+  return line.length > max ? line.slice(0, max - 1) + '…' : line;
+}

@@ -13,6 +13,7 @@ import {
 import type { AppConfig } from '../config.js';
 import type { Store, StoredRequest, User } from '../store/types.js';
 import { CLOCK, CONFIG, STORE, type Clock } from '../tokens.js';
+import { RadarService } from '../radar/radar.service.js';
 import { parseBody } from '../validation.js';
 
 const ignore = ignoreModule.default;
@@ -55,6 +56,7 @@ export class RequestsService {
     @Inject(CONFIG) private readonly config: AppConfig,
     @Inject(STORE) private readonly store: Store,
     @Inject(CLOCK) private readonly now: Clock,
+    @Inject(RadarService) private readonly radar: RadarService,
   ) {}
 
   async create(user: User, body: unknown): Promise<CreatedRequest> {
@@ -87,7 +89,17 @@ export class RequestsService {
       createdAt: now,
       expiresAt: new Date(now.getTime() + this.config.requestTtlHours * HOUR),
     });
+    await this.radar.tick();
     return { ...summary(stored), secretsMasked: request.secretsMasked, secondPassMasked: extra };
+  }
+
+  /** The requester gives up (or solved it alone): helpers stop seeing the request. */
+  async close(user: User, id: string): Promise<void> {
+    const stored = UUID.test(id) ? await this.store.getRequest(id, this.now()) : null;
+    if (!stored) throw new NotFoundException('Demande introuvable, ou déjà effacée.');
+    if (stored.userId !== user.id) throw new ForbiddenException('Cette demande ne t’appartient pas.');
+    await this.store.closeRequest(id, user.id);
+    await this.radar.tick();
   }
 
   async list(user: User): Promise<RequestSummary[]> {

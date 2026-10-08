@@ -8,9 +8,12 @@ import { AuthService } from './auth/auth.service.js';
 import { fetchGithubClient, type GithubClient } from './auth/github.js';
 import type { AppConfig } from './config.js';
 import { HealthController } from './health.controller.js';
+import { RadarService } from './radar/radar.service.js';
 import { PurgeService } from './requests/purge.service.js';
 import { RequestsController } from './requests/requests.controller.js';
 import { RequestsService } from './requests/requests.service.js';
+import { SolutionsController } from './solutions/solutions.controller.js';
+import { SolutionsService } from './solutions/solutions.service.js';
 import type { Store } from './store/types.js';
 import { CLOCK, CONFIG, GITHUB, STORE, type Clock } from './tokens.js';
 
@@ -26,7 +29,7 @@ export class AppModule {
   static forRoot(deps: AppDeps): DynamicModule {
     return {
       module: AppModule,
-      controllers: [HealthController, AuthController, RequestsController],
+      controllers: [HealthController, AuthController, RequestsController, SolutionsController],
       providers: [
         { provide: CONFIG, useValue: deps.config },
         { provide: STORE, useValue: deps.store },
@@ -36,6 +39,8 @@ export class AppModule {
         AuthGuard,
         RequestsService,
         PurgeService,
+        RadarService,
+        SolutionsService,
       ],
     };
   }

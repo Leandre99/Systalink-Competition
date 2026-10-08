@@ -8,6 +8,12 @@ export interface AppConfig {
   requestTtlHours: number;
   maxRequestsPerHour: number;
   sessionTtlDays: number;
+  /** Radar: after this delay without a helper, close techs are alerted too. */
+  widenAfterSeconds: number;
+  /** Radar: after this delay, every available helper sees the request (public queue). */
+  publicAfterSeconds: number;
+  /** How often the Radar re-checks open requests (0 = never, tests call tick()). */
+  radarTickMs: number;
 }
 
 function numberFrom(value: string | undefined, fallback: number, min: number, max: number): number {
@@ -26,5 +32,8 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
     requestTtlHours: numberFrom(env.SOS_REQUEST_TTL_HOURS, 24, 1, 24),
     maxRequestsPerHour: numberFrom(env.SOS_MAX_REQUESTS_PER_HOUR, 3, 1, 1000),
     sessionTtlDays: 30,
+    widenAfterSeconds: numberFrom(env.SOS_WIDEN_AFTER_SECONDS, 120, 0, 3600),
+    publicAfterSeconds: numberFrom(env.SOS_PUBLIC_AFTER_SECONDS, 300, 0, 86400),
+    radarTickMs: numberFrom(env.SOS_RADAR_TICK_MS, 3000, 0, 60000),
   };
 }

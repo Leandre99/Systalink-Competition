@@ -15,6 +15,8 @@ export interface CliArgs {
   dryRun: boolean;
   json: boolean;
   force: boolean;
+  /** Send without waiting for a helper in the terminal. */
+  noWait: boolean;
   help: boolean;
   version: boolean;
 }
@@ -28,6 +30,7 @@ export function parseArgs(argv: string[]): CliArgs {
     dryRun: false,
     json: false,
     force: false,
+    noWait: false,
     help: false,
     version: false,
   };
@@ -65,6 +68,9 @@ export function parseArgs(argv: string[]): CliArgs {
         break;
       case '--force':
         args.force = true;
+        break;
+      case '--no-wait':
+        args.noWait = true;
         break;
       case '-a':
       case '--add': {
@@ -124,5 +130,6 @@ Options :
       --dry-run        Afficher l'aperçu sans rien envoyer
       --json           Afficher la demande au format JSON (rien n'est envoyé)
       --force          Préparer une demande même si la commande réussit
+      --no-wait        Envoyer sans attendre un aidant dans le terminal
   -v, --version        Afficher la version
   -h, --help           Afficher cette aide`;
