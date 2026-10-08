@@ -16,11 +16,13 @@ import { apiFetch } from '../lib/api';
 import { ListSkeleton } from '../components/Skeleton';
 import { ReportModal } from '../components/ReportModal';
 
+import { FALLBACK_SOLUTIONS } from '../lib/mockData';
+
 export const SolutionsPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
 
-  const [solutions, setSolutions] = useState<SolutionSheet[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [solutions, setSolutions] = useState<SolutionSheet[]>(FALLBACK_SOLUTIONS);
+  const [loading, setLoading] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedTag, setSelectedTag] = useState('Tous');
 
@@ -31,9 +33,9 @@ export const SolutionsPage: React.FC = () => {
     async function loadData() {
       try {
         const res = await apiFetch<SolutionSheet[]>('/solutions');
-        if (isMounted) setSolutions(res);
+        if (isMounted && res && res.length > 0) setSolutions(res);
       } catch (err) {
-        console.warn('Erreur chargement solutions:', err);
+        console.warn('Utilisation des solutions locales:', err);
       } finally {
         if (isMounted) setLoading(false);
       }

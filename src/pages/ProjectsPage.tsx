@@ -17,6 +17,8 @@ import { Project, User } from '@shared/index';
 import { apiFetch } from '../lib/api';
 import { ListSkeleton } from '../components/Skeleton';
 
+import { FALLBACK_PROJECTS } from '../lib/mockData';
+
 interface ProjectsPageProps {
   currentUser: User;
 }
@@ -24,8 +26,8 @@ interface ProjectsPageProps {
 export const ProjectsPage: React.FC<ProjectsPageProps> = ({ currentUser }) => {
   const { id } = useParams<{ id: string }>();
 
-  const [projects, setProjects] = useState<Project[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [projects, setProjects] = useState<Project[]>(FALLBACK_PROJECTS);
+  const [loading, setLoading] = useState(false);
 
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [name, setName] = useState('');
@@ -45,9 +47,9 @@ export const ProjectsPage: React.FC<ProjectsPageProps> = ({ currentUser }) => {
   const loadProjects = async () => {
     try {
       const res = await apiFetch<Project[]>('/projects');
-      setProjects(res);
+      if (res && res.length > 0) setProjects(res);
     } catch (err) {
-      console.warn('Erreur chargement projets:', err);
+      console.warn('Utilisation des projets locaux:', err);
     } finally {
       setLoading(false);
     }

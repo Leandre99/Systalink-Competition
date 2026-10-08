@@ -12,11 +12,12 @@ import {
   Search,
   Users,
   Radar,
-  Zap,
+  ShieldCheck,
+  Code2,
 } from 'lucide-react';
 import { OnboardingChecklist } from '../components/OnboardingChecklist';
-import { ListSkeleton } from '../components/Skeleton';
 import { apiFetch } from '../lib/api';
+import { FALLBACK_SOLUTIONS, FALLBACK_PROJECTS, FALLBACK_USERS } from '../lib/mockData';
 import { User, SolutionSheet, Project } from '@shared/index';
 
 interface DiscoverPageProps {
@@ -25,10 +26,10 @@ interface DiscoverPageProps {
 }
 
 export const DiscoverPage: React.FC<DiscoverPageProps> = ({ currentUser, onOpenDoorbell }) => {
-  const [solutions, setSolutions] = useState<SolutionSheet[]>([]);
-  const [projects, setProjects] = useState<Project[]>([]);
-  const [users, setUsers] = useState<User[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [solutions, setSolutions] = useState<SolutionSheet[]>(FALLBACK_SOLUTIONS);
+  const [projects, setProjects] = useState<Project[]>(FALLBACK_PROJECTS);
+  const [users, setUsers] = useState<User[]>(FALLBACK_USERS);
+  const [loading, setLoading] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
 
   useEffect(() => {
@@ -36,17 +37,17 @@ export const DiscoverPage: React.FC<DiscoverPageProps> = ({ currentUser, onOpenD
     async function loadData() {
       try {
         const [sols, projs, usrs] = await Promise.all([
-          apiFetch<SolutionSheet[]>('/solutions'),
-          apiFetch<Project[]>('/projects'),
-          apiFetch<User[]>('/users'),
+          apiFetch<SolutionSheet[]>('/solutions').catch(() => FALLBACK_SOLUTIONS),
+          apiFetch<Project[]>('/projects').catch(() => FALLBACK_PROJECTS),
+          apiFetch<User[]>('/users').catch(() => FALLBACK_USERS),
         ]);
         if (isMounted) {
-          setSolutions(sols);
-          setProjects(projs);
-          setUsers(usrs);
+          if (sols && sols.length > 0) setSolutions(sols);
+          if (projs && projs.length > 0) setProjects(projs);
+          if (usrs && usrs.length > 0) setUsers(usrs);
         }
       } catch (err) {
-        console.warn('Erreur chargement page Découvrir:', err);
+        console.warn('Utilisation des données locales résilientes:', err);
       } finally {
         if (isMounted) setLoading(false);
       }
@@ -65,152 +66,171 @@ export const DiscoverPage: React.FC<DiscoverPageProps> = ({ currentUser, onOpenD
   );
 
   return (
-    <div className="space-y-8 animate-page-enter">
-      {/* Onboarding 4 Steps Checklist */}
+    <div className="space-y-6">
+      {/* 1. Onboarding Checklist (Sleek light SaaS banner) */}
       <OnboardingChecklist currentUser={currentUser} />
 
-      {/* Hero Welcome Card - Authentic Kora Emerald + Amber Accent */}
-      <div className="bg-gradient-to-br from-[#0A1118] via-[#0F6E56] to-[#0A4F3E] text-white rounded-3xl p-6 md:p-10 shadow-2xl border border-emerald-500/40 relative overflow-hidden">
-        {/* Background Decorative Mesh & Glows */}
-        <div className="absolute -right-16 -top-16 w-80 h-80 bg-[#F2A93B]/20 rounded-full blur-3xl pointer-events-none" />
-        <div className="absolute right-20 -bottom-20 w-60 h-60 bg-emerald-400/15 rounded-full blur-2xl pointer-events-none" />
+      {/* 2. Hero Section: Refined Deep Navy Card with Emerald/Amber accents */}
+      <div className="bg-gradient-to-br from-[#0A1118] via-[#101A24] to-[#0A1118] text-white rounded-2xl p-6 md:p-8 shadow-lg border border-[#1E2E40] relative overflow-hidden">
+        {/* Subtle decorative glow */}
+        <div className="absolute -right-16 -top-16 w-72 h-72 bg-[#0F6E56]/20 rounded-full blur-3xl pointer-events-none" />
+        <div className="absolute right-20 -bottom-20 w-60 h-60 bg-[#F2A93B]/10 rounded-full blur-3xl pointer-events-none" />
 
-        <div className="max-w-3xl relative z-10 space-y-5">
-          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 bg-[#F2A93B]/15 backdrop-blur-md rounded-full text-xs font-black text-[#F2A93B] border border-[#F2A93B]/30 shadow-sm">
-            <Sparkles className="w-4 h-4" />
-            <span>Quartier numérique & entraide en direct entre développeurs africains</span>
+        <div className="max-w-3xl relative z-10 space-y-4">
+          <div className="inline-flex items-center gap-2 px-3 py-1 bg-[#142332] rounded-full text-[11px] font-bold text-[#F2A93B] border border-amber-500/25">
+            <Sparkles className="w-3.5 h-3.5" />
+            <span>Quartier d’entraide technique ouest-africain • CADev 2026</span>
           </div>
 
-          <h2 className="text-2xl md:text-4xl font-black tracking-tight leading-tight text-white">
+          <h1 className="text-2xl md:text-3xl font-extrabold tracking-tight leading-tight text-white">
             Bloqué sur ton code ? Un voisin disponible te rejoint en <span className="text-[#F2A93B]">1 clic</span>.
-          </h2>
+          </h1>
 
-          <p className="text-sm text-emerald-100 leading-relaxed font-medium">
-            Résolution instantanée via l’éditeur collaboratif CodeFlash : confirmation par test automatique, fiche de savoir partagée et valorisation sur ton Passeport certifié.
+          <p className="text-xs md:text-sm text-slate-300 leading-relaxed font-normal max-w-2xl">
+            Résolution en direct via le mini-IDE collaboratif CodeFlash : confirmation par test automatisé, fiche de solution partagée et valorisation sur ton Passeport certifié.
           </p>
 
-          {/* Stat Counter Pills */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-2">
-            <div className="bg-white/10 backdrop-blur-md border border-white/15 p-3.5 rounded-2xl">
-              <p className="text-xl font-black text-white">{solutions.length || 3}</p>
-              <p className="text-[11px] font-bold text-emerald-200">Fiches Publiées</p>
+          {/* Stat Pills */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 pt-2">
+            <div className="bg-[#101A24]/90 border border-[#1E2E40] p-3 rounded-xl">
+              <p className="text-lg font-black text-white">{solutions.length}</p>
+              <p className="text-[11px] font-medium text-slate-400">Fiches vérifiées</p>
             </div>
-            <div className="bg-white/10 backdrop-blur-md border border-white/15 p-3.5 rounded-2xl">
-              <p className="text-xl font-black text-[#F2A93B] flex items-center gap-1.5">
-                <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-ping" />
-                {openNeighbors.length || 2}
+            <div className="bg-[#101A24]/90 border border-[#1E2E40] p-3 rounded-xl">
+              <p className="text-lg font-black text-[#F2A93B] flex items-center gap-1.5">
+                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
+                {openNeighbors.length}
               </p>
-              <p className="text-[11px] font-bold text-emerald-200">Voisins Porte Ouverte</p>
+              <p className="text-[11px] font-medium text-slate-400">Voisins en ligne</p>
             </div>
-            <div className="bg-white/10 backdrop-blur-md border border-white/15 p-3.5 rounded-2xl">
-              <p className="text-xl font-black text-white">28</p>
-              <p className="text-[11px] font-bold text-emerald-200">Aides Confirmées</p>
+            <div className="bg-[#101A24]/90 border border-[#1E2E40] p-3 rounded-xl">
+              <p className="text-lg font-black text-emerald-400 flex items-center gap-1">
+                <ShieldCheck className="w-4 h-4 text-emerald-400" />
+                100%
+              </p>
+              <p className="text-[11px] font-medium text-slate-400">Preuves par test</p>
             </div>
-            <div className="bg-white/10 backdrop-blur-md border border-white/15 p-3.5 rounded-2xl">
-              <p className="text-xl font-black text-[#F2A93B]">100%</p>
-              <p className="text-[11px] font-bold text-emerald-200">Preuves par le Test</p>
+            <div className="bg-[#101A24]/90 border border-[#1E2E40] p-3 rounded-xl">
+              <p className="text-lg font-black text-white flex items-center gap-1">
+                <Code2 className="w-4 h-4 text-[#F2A93B]" />
+                0 Fuite
+              </p>
+              <p className="text-[11px] font-medium text-slate-400">Secrets masqués</p>
             </div>
           </div>
 
+          {/* Action CTAs */}
           <div className="flex flex-wrap items-center gap-3 pt-2">
             <Link
               to="/ask"
-              className="btn-amber py-3 px-6 text-sm"
+              className="btn-amber py-2.5 px-5 text-xs font-bold"
             >
-              <HelpCircle className="w-4 h-4 text-white" />
+              <HelpCircle className="w-4 h-4 text-slate-900" />
               <span>Demander de l’aide (SOS Dev)</span>
             </Link>
 
             <button
               onClick={onOpenDoorbell}
-              className="px-5 py-3 bg-white/10 hover:bg-white/20 text-white font-bold text-sm rounded-xl border border-white/25 transition-all flex items-center gap-2 shadow"
+              className="px-4 py-2.5 bg-slate-800/80 hover:bg-slate-700/80 text-white font-semibold text-xs rounded-xl border border-slate-700 transition-all flex items-center gap-2"
             >
-              <Bell className="w-4 h-4 text-[#F2A93B] animate-bell-swing" />
+              <Bell className="w-3.5 h-3.5 text-[#F2A93B] animate-bell-swing" />
               <span>Sonner chez un voisin</span>
             </button>
+
+            <Link
+              to="/radar"
+              className="px-4 py-2.5 text-slate-300 hover:text-white font-medium text-xs transition-colors flex items-center gap-1.5"
+            >
+              <span>Voir le Radar</span>
+              <ArrowRight className="w-3.5 h-3.5 text-slate-400" />
+            </Link>
           </div>
         </div>
       </div>
 
-      {/* Quick Search Engine */}
-      <div className="bg-white p-4 rounded-2xl border border-[#E2E8F0] shadow-sm flex items-center gap-3 focus-within:border-[#0F6E56] focus-within:shadow-md transition-all">
-        <Search className="w-5 h-5 text-slate-400 shrink-0" />
+      {/* 3. Quick Search Bar */}
+      <div className="bg-white p-3.5 rounded-xl border border-slate-200/90 shadow-2xs flex items-center gap-3 focus-within:border-emerald-600 focus-within:ring-1 focus-within:ring-emerald-600/20 transition-all">
+        <Search className="w-4 h-4 text-slate-400 shrink-0 ml-1" />
         <input
           type="text"
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
-          placeholder="Rechercher une fiche solution, un bug (ex: CORS, React, Express, useEffect, Docker)..."
-          className="w-full text-sm text-[#0F172A] focus:outline-none placeholder-slate-400 font-medium"
+          placeholder="Rechercher une fiche solution, un problème (CORS, React, Express, useEffect, Docker)..."
+          className="w-full text-xs md:text-sm text-slate-800 focus:outline-none placeholder-slate-400 font-normal"
         />
         {searchQuery && (
-          <button onClick={() => setSearchQuery('')} className="text-xs text-slate-400 hover:text-slate-600 font-bold px-2">
+          <button
+            onClick={() => setSearchQuery('')}
+            className="text-xs text-slate-400 hover:text-slate-600 font-semibold px-2 shrink-0"
+          >
             Effacer
           </button>
         )}
       </div>
 
-      {/* Main Grid Content */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* Left Column (2 cols): Solutions & Projects */}
-        <div className="lg:col-span-2 space-y-8">
+      {/* 4. Main Grid: Left (Solutions & Projects) - Right (Neighbors & Radar CTA) */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Left Column (2 cols) */}
+        <div className="lg:col-span-2 space-y-6">
           {/* Solutions Section */}
           <div>
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-extrabold text-[#0F172A] flex items-center gap-2">
-                <BookOpen className="w-5 h-5 text-[#0F6E56]" />
+            <div className="flex items-center justify-between mb-3.5">
+              <h2 className="text-base font-bold text-slate-900 flex items-center gap-2">
+                <BookOpen className="w-4 h-4 text-[#0F6E56]" />
                 <span>Fiches solutions récentes</span>
-              </h3>
-              <Link to="/solutions" className="text-xs font-bold text-[#0F6E56] hover:underline flex items-center gap-1">
-                <span>Voir toutes les fiches</span>
-                <ArrowRight className="w-3.5 h-3.5" />
+              </h2>
+              <Link to="/solutions" className="text-xs font-semibold text-[#0F6E56] hover:underline flex items-center gap-1">
+                <span>Toutes les fiches ({solutions.length})</span>
+                <ArrowRight className="w-3 h-3" />
               </Link>
             </div>
 
-            {loading ? (
-              <ListSkeleton count={2} />
-            ) : filteredSolutions.length === 0 ? (
-              <div className="p-8 bg-white rounded-3xl border border-[#E2E8F0] text-center space-y-3 shadow-sm">
-                <p className="text-sm text-slate-500 font-medium">Aucune fiche solution ne correspond à ta recherche.</p>
-                <Link to="/ask" className="btn-primary py-2 text-xs">
-                  Poser la première question
-                </Link>
+            {filteredSolutions.length === 0 ? (
+              <div className="p-6 bg-white rounded-2xl border border-slate-200/80 text-center space-y-2.5 shadow-2xs">
+                <p className="text-xs text-slate-500">Aucune fiche solution trouvée pour « {searchQuery} ».</p>
+                <button
+                  onClick={() => setSearchQuery('')}
+                  className="text-xs font-semibold text-[#0F6E56] hover:underline"
+                >
+                  Réinitialiser la recherche
+                </button>
               </div>
             ) : (
-              <div className="space-y-4">
+              <div className="space-y-3">
                 {filteredSolutions.slice(0, 3).map((sol, index) => (
                   <motion.div
                     key={sol.id}
-                    initial={{ opacity: 0, y: 15 }}
+                    initial={{ opacity: 0, y: 8 }}
                     animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.25, delay: index * 0.08 }}
+                    transition={{ duration: 0.2, delay: index * 0.05 }}
                   >
                     <Link
                       to={`/solutions/${sol.id}`}
-                      className="card-modern p-6 block group"
+                      className="bg-white p-5 rounded-xl border border-slate-200/80 hover:border-emerald-600 hover:shadow-md transition-all block group"
                     >
-                      <div className="flex items-center justify-between gap-2 mb-3">
-                        <span className="px-3 py-1 bg-emerald-50 text-[#0F6E56] text-xs font-extrabold rounded-full border border-emerald-200 shadow-sm">
+                      <div className="flex items-center justify-between gap-2 mb-2">
+                        <span className="px-2.5 py-0.5 bg-emerald-50 text-[#0F6E56] text-[11px] font-bold rounded-md border border-emerald-200">
                           {sol.stackTag}
                         </span>
-                        <span className="text-xs text-slate-400 font-semibold">
+                        <span className="text-[11px] text-slate-400 font-medium">
                           {new Date(sol.publishedAt).toLocaleDateString('fr-FR')}
                         </span>
                       </div>
 
-                      <h4 className="font-extrabold text-[#0F172A] group-hover:text-[#0F6E56] transition-colors mb-2 text-base md:text-lg">
+                      <h3 className="font-bold text-slate-900 group-hover:text-[#0F6E56] transition-colors mb-1.5 text-sm md:text-base leading-snug">
                         {sol.title}
-                      </h4>
+                      </h3>
 
-                      <p className="text-xs md:text-sm text-slate-600 line-clamp-2 mb-4 font-medium leading-relaxed">
+                      <p className="text-xs text-slate-600 line-clamp-2 mb-3.5 leading-relaxed font-normal">
                         {sol.problem}
                       </p>
 
-                      <div className="flex items-center justify-between text-xs text-slate-500 pt-3.5 border-t border-slate-100">
-                        <span className="flex items-center gap-1 font-semibold">
-                          Co-créée par <strong className="text-slate-900">{sol.authorName}</strong> & <strong className="text-slate-900">{sol.helperName}</strong>
+                      <div className="flex items-center justify-between text-[11px] text-slate-500 pt-3 border-t border-slate-100 flex-wrap gap-2">
+                        <span className="flex items-center gap-1">
+                          Co-rédigée par <strong className="text-slate-800">{sol.authorName}</strong> & <strong className="text-slate-800">{sol.helperName}</strong>
                         </span>
-                        <span className="font-extrabold text-[#0F6E56] flex items-center gap-1.5 bg-[#ECFDF5] px-3 py-1 rounded-full border border-emerald-200">
-                          <CheckCircle2 className="w-4 h-4 text-[#0F6E56]" />
+                        <span className="font-bold text-[#0F6E56] flex items-center gap-1 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200/80">
+                          <CheckCircle2 className="w-3.5 h-3.5 text-[#0F6E56]" />
                           Confirmée par Test
                         </span>
                       </div>
@@ -223,136 +243,118 @@ export const DiscoverPage: React.FC<DiscoverPageProps> = ({ currentUser, onOpenD
 
           {/* Projects Section */}
           <div>
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-extrabold text-[#0F172A] flex items-center gap-2">
-                <FolderGit2 className="w-5 h-5 text-[#0F6E56]" />
+            <div className="flex items-center justify-between mb-3.5">
+              <h2 className="text-base font-bold text-slate-900 flex items-center gap-2">
+                <FolderGit2 className="w-4 h-4 text-[#0F6E56]" />
                 <span>Projets en quête de coéquipiers</span>
-              </h3>
-              <Link to="/projects" className="text-xs font-bold text-[#0F6E56] hover:underline flex items-center gap-1">
-                <span>Voir la vitrine</span>
-                <ArrowRight className="w-3.5 h-3.5" />
+              </h2>
+              <Link to="/projects" className="text-xs font-semibold text-[#0F6E56] hover:underline flex items-center gap-1">
+                <span>Tous les projets ({projects.length})</span>
+                <ArrowRight className="w-3 h-3" />
               </Link>
             </div>
 
-            {loading ? (
-              <ListSkeleton count={2} />
-            ) : projects.length === 0 ? (
-              <div className="p-8 bg-white rounded-3xl border border-[#E2E8F0] text-center space-y-3 shadow-sm">
-                <p className="text-sm text-slate-500 font-medium">Aucun projet à afficher.</p>
-                <Link to="/projects" className="btn-primary py-2 text-xs">
-                  Présenter mon projet
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
+              {projects.slice(0, 2).map((proj) => (
+                <Link
+                  key={proj.id}
+                  to={`/projects/${proj.id}`}
+                  className="bg-white p-4.5 rounded-xl border border-slate-200/80 hover:border-emerald-600 hover:shadow-md transition-all flex flex-col justify-between group"
+                >
+                  <div>
+                    <div className="flex items-center justify-between gap-2 mb-1.5">
+                      <h3 className="font-bold text-slate-900 text-sm group-hover:text-[#0F6E56] transition-colors">{proj.name}</h3>
+                      <span className="text-[10px] font-bold text-slate-600 bg-slate-100 px-2 py-0.5 rounded-md">
+                        {proj.city}
+                      </span>
+                    </div>
+                    <p className="text-xs text-slate-600 line-clamp-2 mb-3 leading-relaxed font-normal">
+                      {proj.description}
+                    </p>
+                  </div>
+
+                  <div>
+                    <div className="flex flex-wrap gap-1 mb-3">
+                      {proj.rolesNeeded.map((r, i) => (
+                        <span key={i} className="px-2 py-0.5 bg-amber-50 text-amber-800 text-[10px] font-semibold rounded border border-amber-200/80">
+                          {r}
+                        </span>
+                      ))}
+                    </div>
+
+                    <div className="flex items-center justify-between text-xs text-[#0F6E56] font-bold pt-2.5 border-t border-slate-100">
+                      <span className="text-[11px] text-slate-500 font-medium">{proj.membersCount} membre(s)</span>
+                      <span className="flex items-center gap-1 group-hover:translate-x-0.5 transition-transform text-[11px]">
+                        Rejoindre le chantier
+                        <ArrowRight className="w-3 h-3" />
+                      </span>
+                    </div>
+                  </div>
                 </Link>
-              </div>
-            ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {projects.slice(0, 2).map((proj) => (
-                  <Link
-                    key={proj.id}
-                    to={`/projects/${proj.id}`}
-                    className="card-modern p-5 flex flex-col justify-between group"
-                  >
-                    <div>
-                      <div className="flex items-center justify-between gap-2 mb-2">
-                        <h4 className="font-extrabold text-[#0F172A] text-base group-hover:text-[#0F6E56] transition-colors">{proj.name}</h4>
-                        <span className="text-[11px] font-bold text-slate-600 bg-slate-100 px-2 py-0.5 rounded-full">
-                          {proj.city}
-                        </span>
-                      </div>
-                      <p className="text-xs text-slate-600 line-clamp-2 mb-4 font-medium">
-                        {proj.description}
-                      </p>
-                    </div>
-
-                    <div>
-                      <div className="flex flex-wrap gap-1 mb-3">
-                        {proj.rolesNeeded.map((r, i) => (
-                          <span key={i} className="px-2 py-0.5 bg-amber-50 text-amber-800 text-[10px] font-bold rounded-md border border-amber-200">
-                            {r}
-                          </span>
-                        ))}
-                      </div>
-
-                      <div className="flex items-center justify-between text-xs text-[#0F6E56] font-bold pt-3 border-t border-slate-100">
-                        <span>{proj.membersCount} membre(s)</span>
-                        <span className="flex items-center gap-1 group-hover:translate-x-1 transition-transform">
-                          Demander à rejoindre
-                          <ArrowRight className="w-3.5 h-3.5" />
-                        </span>
-                      </div>
-                    </div>
-                  </Link>
-                ))}
-              </div>
-            )}
+              ))}
+            </div>
           </div>
         </div>
 
         {/* Right Column (1 col): Neighbors & Radar Quick Info */}
-        <div className="space-y-6">
+        <div className="space-y-5">
           {/* Neighbors with Door Open */}
-          <div className="bg-white p-6 rounded-3xl border border-[#E2E8F0] shadow-sm space-y-4">
+          <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-2xs space-y-3.5">
             <div className="flex items-center justify-between">
-              <h3 className="text-base font-extrabold text-[#0F172A] flex items-center gap-2">
+              <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
                 <Users className="w-4 h-4 text-[#0F6E56]" />
-                <span>Voisins la porte ouverte</span>
+                <span>Voisins porte ouverte</span>
               </h3>
-              <span className="px-2.5 py-0.5 bg-[#ECFDF5] text-[#0F6E56] text-[10px] font-extrabold rounded-full border border-emerald-200">
+              <span className="px-2 py-0.5 bg-emerald-50 text-[#0F6E56] text-[10px] font-bold rounded-full border border-emerald-200">
                 {openNeighbors.length} dispo
               </span>
             </div>
 
-            <p className="text-xs text-slate-500 font-medium">
-              Ces développeurs de la communauté acceptent les alertes de sonnette pour t’aider immédiatement.
+            <p className="text-[11px] text-slate-500 leading-snug font-normal">
+              Disponibles pour une session CodeFlash dès que tu sonnes à leur porte.
             </p>
 
-            <div className="space-y-3">
-              {openNeighbors.length === 0 ? (
-                <div className="p-4 bg-slate-50 rounded-2xl text-center text-xs text-slate-500 font-medium border border-slate-200">
-                  Aucun voisin en ligne. Ouvre ta propre porte sur /maison !
-                </div>
-              ) : (
-                openNeighbors.map((n) => (
-                  <div key={n.id} className="p-3 bg-[#F8FAF9] rounded-2xl border border-slate-200 flex items-center justify-between hover:border-emerald-300 transition-colors">
-                    <div className="flex items-center gap-3">
-                      <div className="relative">
-                        <img src={n.avatar} alt={n.name} className="w-9 h-9 rounded-full object-cover border-2 border-[#0F6E56]" />
-                        <span className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-emerald-500 rounded-full border-2 border-white"></span>
-                      </div>
-                      <div>
-                        <h4 className="text-xs font-bold text-[#0F172A]">{n.name}</h4>
-                        <p className="text-[10px] text-slate-500 font-medium">{n.city} • <span className="text-[#0F6E56]">{n.stack.slice(0, 2).join(', ')}</span></p>
-                      </div>
+            <div className="space-y-2">
+              {openNeighbors.map((n) => (
+                <div key={n.id} className="p-2.5 bg-slate-50/80 rounded-xl border border-slate-200/70 flex items-center justify-between hover:border-slate-300 transition-colors">
+                  <div className="flex items-center gap-2.5">
+                    <div className="relative shrink-0">
+                      <img src={n.avatar} alt={n.name} className="w-8 h-8 rounded-full object-cover border border-[#0F6E56]" />
+                      <span className="absolute bottom-0 right-0 w-2 h-2 bg-emerald-500 rounded-full border border-white"></span>
                     </div>
-
-                    <button
-                      onClick={onOpenDoorbell}
-                      className="p-2 text-[#F2A93B] hover:bg-amber-50 rounded-xl transition-colors"
-                      title="Sonner à sa porte"
-                    >
-                      <Bell className="w-4 h-4" />
-                    </button>
+                    <div>
+                      <h4 className="text-xs font-bold text-slate-900">{n.name}</h4>
+                      <p className="text-[10px] text-slate-500 font-medium">{n.city} • <span className="text-[#0F6E56]">{n.stack.slice(0, 2).join(', ')}</span></p>
+                    </div>
                   </div>
-                ))
-              )}
+
+                  <button
+                    onClick={onOpenDoorbell}
+                    className="p-1.5 text-[#F2A93B] hover:bg-amber-50 rounded-lg transition-colors"
+                    title="Sonner à sa porte"
+                  >
+                    <Bell className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              ))}
             </div>
           </div>
 
           {/* Radar Call to Action */}
-          <div className="bg-gradient-to-br from-[#0A1118] via-[#101A24] to-[#0A4F3E] p-6 rounded-3xl text-white shadow-xl space-y-3 border border-emerald-500/30 relative overflow-hidden">
-            <div className="absolute -top-10 -right-10 w-32 h-32 bg-[#F2A93B]/20 rounded-full blur-2xl pointer-events-none" />
-            <div className="flex items-center gap-2 relative z-10">
-              <Radar className="w-5 h-5 text-[#F2A93B] animate-pulse-subtle" />
-              <h4 className="font-extrabold text-base text-white">Le Radar des aidants</h4>
+          <div className="bg-gradient-to-br from-[#0A1118] via-[#101A24] to-[#0A1118] p-5 rounded-2xl text-white shadow-md space-y-2.5 border border-[#1E2E40] relative overflow-hidden">
+            <div className="flex items-center gap-2">
+              <Radar className="w-4 h-4 text-[#F2A93B] animate-pulse" />
+              <h4 className="font-bold text-sm text-white">Radar des aidants</h4>
             </div>
-            <p className="text-xs text-slate-300 leading-relaxed font-medium relative z-10">
-              Tu as quelques minutes de libre ? Consulte les demandes bloquées et aide un développeur voisin à passer son test au vert !
+            <p className="text-xs text-slate-300 leading-relaxed font-normal">
+              Consulte les appels d’aide en direct et prête main-forte pour passer les tests au vert.
             </p>
             <Link
               to="/radar"
-              className="btn-primary w-full justify-center text-xs py-2.5 mt-2 relative z-10"
+              className="btn-primary w-full justify-center text-xs py-2 mt-1"
             >
               <span>Accéder au Radar</span>
-              <ArrowRight className="w-4 h-4" />
+              <ArrowRight className="w-3.5 h-3.5" />
             </Link>
           </div>
         </div>

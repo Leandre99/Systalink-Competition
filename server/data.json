@@ -64,8 +64,8 @@
       "status": "pending",
       "requesterId": "user-koffi",
       "requesterName": "Koffi Mensah",
-      "createdAt": "2026-10-07T15:39:44.177Z",
-      "updatedAt": "2026-10-07T15:39:44.179Z"
+      "createdAt": "2026-10-08T06:07:50.332Z",
+      "updatedAt": "2026-10-08T06:07:50.334Z"
     },
     {
       "id": "req-2",
@@ -78,8 +78,8 @@
       "status": "pending",
       "requesterId": "user-koffi",
       "requesterName": "Koffi Mensah",
-      "createdAt": "2026-10-07T14:39:44.179Z",
-      "updatedAt": "2026-10-07T14:39:44.179Z"
+      "createdAt": "2026-10-08T05:07:50.334Z",
+      "updatedAt": "2026-10-08T05:07:50.334Z"
     }
   ],
   "rooms": [
@@ -99,14 +99,14 @@
           "senderId": "user-koffi",
           "senderName": "Koffi Mensah",
           "text": "Salut Aïcha ! Mon serveur Express rejette mes requêtes avec une erreur CORS.",
-          "timestamp": "2026-10-07T16:09:44.179Z"
+          "timestamp": "2026-10-08T06:37:50.334Z"
         },
         {
           "id": "msg-2",
           "senderId": "user-aicha",
           "senderName": "Aïcha Diop",
           "text": "Salut Koffi ! J ai jeté un œil à ton code. Il manque le middleware cors() sur ton serveur. On va le corriger ensemble.",
-          "timestamp": "2026-10-07T16:19:44.179Z"
+          "timestamp": "2026-10-08T06:47:50.334Z"
         }
       ],
       "testStatus": "idle",
@@ -115,7 +115,7 @@
       "requesterApproved": false,
       "helperApproved": false,
       "status": "active",
-      "createdAt": "2026-10-07T16:09:44.179Z"
+      "createdAt": "2026-10-08T06:37:50.334Z"
     }
   ],
   "solutions": [
@@ -131,7 +131,7 @@
       "authorName": "Koffi Mensah",
       "helperId": "user-aicha",
       "helperName": "Aïcha Diop",
-      "publishedAt": "2026-10-06T16:39:44.179Z",
+      "publishedAt": "2026-10-07T07:07:50.334Z",
       "upvotes": 14,
       "proofHash": "hash-proof-cors-2026-cadev"
     },
@@ -147,7 +147,7 @@
       "authorName": "Samba Sow",
       "helperId": "user-aicha",
       "helperName": "Aïcha Diop",
-      "publishedAt": "2026-10-05T16:39:44.179Z",
+      "publishedAt": "2026-10-06T07:07:50.334Z",
       "upvotes": 28,
       "proofHash": "hash-proof-useeffect-2026"
     }
@@ -187,7 +187,7 @@
           "status": "todo"
         }
       ],
-      "createdAt": "2026-10-04T16:39:44.179Z"
+      "createdAt": "2026-10-05T07:07:50.334Z"
     },
     {
       "id": "proj-2",
@@ -217,7 +217,7 @@
           "status": "in_progress"
         }
       ],
-      "createdAt": "2026-10-01T16:39:44.179Z"
+      "createdAt": "2026-10-02T07:07:50.334Z"
     }
   ],
   "joinRequests": [
@@ -229,7 +229,7 @@
       "userName": "Aïcha Diop",
       "message": "Je souhaite prêter main forte sur la partie API Backend Node.js et Docker !",
       "status": "accepted",
-      "createdAt": "2026-10-06T16:39:44.179Z"
+      "createdAt": "2026-10-07T07:07:50.334Z"
     }
   ],
   "reports": []

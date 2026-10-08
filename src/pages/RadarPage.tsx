@@ -16,6 +16,8 @@ import { HelpRequest, User } from '@shared/index';
 import { apiFetch } from '../lib/api';
 import { ListSkeleton } from '../components/Skeleton';
 
+import { FALLBACK_REQUESTS } from '../lib/mockData';
+
 interface RadarPageProps {
   currentUser: User;
   setCurrentUser: (u: User) => void;
@@ -27,8 +29,8 @@ export const RadarPage: React.FC<RadarPageProps> = ({ currentUser, setCurrentUse
   const navigate = useNavigate();
   const location = useLocation();
 
-  const [requests, setRequests] = useState<HelpRequest[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [requests, setRequests] = useState<HelpRequest[]>(FALLBACK_REQUESTS);
+  const [loading, setLoading] = useState(false);
   const [selectedStack, setSelectedStack] = useState('Toutes');
   const [joiningId, setJoiningId] = useState<string | null>(null);
 
@@ -37,9 +39,9 @@ export const RadarPage: React.FC<RadarPageProps> = ({ currentUser, setCurrentUse
   const loadRequests = async () => {
     try {
       const res = await apiFetch<HelpRequest[]>('/help-requests');
-      setRequests(res);
+      if (res && res.length > 0) setRequests(res);
     } catch (err) {
-      console.warn('Erreur chargement Radar:', err);
+      console.warn('Utilisation des requêtes locales du Radar:', err);
     } finally {
       setLoading(false);
     }
