@@ -6,17 +6,20 @@
   "type": "module",
   "workspaces": [
     "shared",
-    "cli"
+    "cli",
+    "server"
   ],
   "engines": {
     "node": ">=20"
   },
   "scripts": {
-    "build": "tsc -b cli",
-    "typecheck": "tsc -b cli && tsc -p tsconfig.json",
+    "build": "tsc -b cli server",
+    "typecheck": "tsc -b cli server && tsc -p tsconfig.json",
     "test": "vitest run",
     "audit:licenses": "node scripts/audit-licenses.mjs",
-    "sos": "node cli/dist/index.js"
+    "sos": "node cli/dist/index.js",
+    "server": "node --env-file-if-exists=server/.env server/dist/main.js",
+    "db:up": "docker compose up -d --wait postgres"
   },
   "devDependencies": {
     "@types/node": "^22.7.0",

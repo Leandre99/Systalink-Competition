@@ -21,3 +21,18 @@ describe('parseArgs', () => {
     expect(() => parseArgs(['--add'])).toThrow(CliError);
   });
 });
+
+describe('subcommands', () => {
+  it('parses login options and send file', () => {
+    expect(parseArgs(['login', '--dev', 'koffi', '--server', 'http://x:4000'])).toMatchObject({ subcommand: 'login', dev: 'koffi', server: 'http://x:4000' });
+    expect(parseArgs(['send', 'a.json'])).toMatchObject({ subcommand: 'send', command: ['a.json'] });
+    expect(parseArgs(['whoami']).subcommand).toBe('whoami');
+  });
+
+  it('keeps `sos -- login` as a command and rejects bad options', () => {
+    expect(parseArgs(['--', 'login']).subcommand).toBeUndefined();
+    expect(parseArgs(['--', 'login']).command).toEqual(['login']);
+    expect(() => parseArgs(['logout', '--dev', 'x'])).toThrow(CliError);
+    expect(() => parseArgs(['login', '--dev'])).toThrow(CliError);
+  });
+});

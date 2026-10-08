@@ -1,7 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import ignoreModule, { type Ignore } from 'ignore';
-import { extractFileRefs, LIMITS, type SosFile } from '@sos/shared';
+import { extractFileRefs, LIMITS, SENSITIVE_PATTERNS, type SosFile } from '@sos/shared';
 
 // `ignore` is CommonJS: under NodeNext the callable factory is exposed as `.default`.
 const ignore = ignoreModule.default;
@@ -24,29 +24,7 @@ export const DEPENDENCY_FILES = [
   'pubspec.yaml',
 ];
 
-/** Never sent, even with --add. */
-export const SENSITIVE_PATTERNS = [
-  '.env',
-  '.env.*',
-  '*.pem',
-  '*.key',
-  '*.p12',
-  '*.pfx',
-  '*.keystore',
-  '*.jks',
-  'id_rsa*',
-  'id_dsa*',
-  'id_ecdsa*',
-  'id_ed25519*',
-  '.npmrc',
-  '.pypirc',
-  '.netrc',
-  '.git-credentials',
-  'credentials.json',
-  '*.sqlite',
-  '*.sqlite3',
-  '*.db',
-];
+export { SENSITIVE_PATTERNS };
 
 const NOISE_PATTERNS = ['node_modules/', '.git/', 'dist/', 'build/', '.next/', '__pycache__/', '.venv/', 'venv/', 'vendor/'];
 

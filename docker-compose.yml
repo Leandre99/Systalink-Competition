@@ -1,0 +1,19 @@
+# Base de données locale : docker compose up -d
+services:
+  postgres:
+    image: pgvector/pgvector:pg16
+    environment:
+      POSTGRES_USER: sos
+      POSTGRES_PASSWORD: sos
+      POSTGRES_DB: sos
+    ports:
+      - "5432:5432"
+    volumes:
+      - sos-pg:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U sos"]
+      interval: 2s
+      retries: 15
+
+volumes:
+  sos-pg:

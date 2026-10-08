@@ -6,6 +6,8 @@
     "lib": ["ES2023"],
     "types": ["node"],
     "strict": true,
+    "experimentalDecorators": true,
+    "emitDecoratorMetadata": true,
     "declaration": true,
     "esModuleInterop": true,
     "skipLibCheck": true,

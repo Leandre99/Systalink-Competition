@@ -1,0 +1,23 @@
+/** Files that are never sent, even with --add. Gitignore syntax. */
+export const SENSITIVE_PATTERNS = [
+  '.env',
+  '.env.*',
+  '*.pem',
+  '*.key',
+  '*.p12',
+  '*.pfx',
+  '*.keystore',
+  '*.jks',
+  'id_rsa*',
+  'id_dsa*',
+  'id_ecdsa*',
+  'id_ed25519*',
+  '.npmrc',
+  '.pypirc',
+  '.netrc',
+  '.git-credentials',
+  'credentials.json',
+  '*.sqlite',
+  '*.sqlite3',
+  '*.db',
+];

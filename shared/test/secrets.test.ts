@@ -64,4 +64,13 @@ describe('maskSecrets', () => {
     const { findings } = maskSecrets('PASSWORD=abcd1234\nSECRET=efgh5678\nAKIAIOSFODNN7EXAMPLE');
     expect(summarizeFindings(findings)).toEqual({ 'Mot de passe ou clé': 2, 'Clé AWS': 1 });
   });
+
+  it('is idempotent and counts a secret once', () => {
+    const token = `ghp_${'a1B2c3D4e5'.repeat(3)}abcdef`;
+    const first = maskSecrets(`const token = '${token}';\nconst url = 'postgres://admin:motdepasse@localhost:5432/app';\n`);
+    expect(first.findings.map((f) => f.ruleId)).toEqual(['github', 'url']);
+    const second = maskSecrets(first.text);
+    expect(second.text).toBe(first.text);
+    expect(second.findings).toEqual([]);
+  });
 });

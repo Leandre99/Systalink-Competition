@@ -3,5 +3,5 @@
   "compilerOptions": {
     "noEmit": true
   },
-  "include": ["shared/test", "cli/test", "vitest.config.ts"]
+  "include": ["shared/test", "cli/test", "server/test", "vitest.config.ts"]
 }

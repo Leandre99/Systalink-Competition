@@ -7,7 +7,8 @@ import { buildRequest, withoutFiles } from './build.js';
 import { collectFiles } from './collect.js';
 import { renderPreview } from './preview.js';
 import { runCommand } from './run.js';
-import { saveRequest } from './store.js';
+import { deliver, login, logout, send, whoami } from './account.js';
+import { ApiError } from './api.js';
 
 const { version } = createRequire(import.meta.url)('../package.json') as { version: string };
 
@@ -25,6 +26,22 @@ async function main(): Promise<number> {
   if (args.version) {
     console.log(version);
     return 0;
+  }
+  if (args.subcommand) {
+    if (args.help) {
+      console.log(USAGE);
+      return 0;
+    }
+    switch (args.subcommand) {
+      case 'login':
+        return login({ dev: args.dev, server: args.server });
+      case 'logout':
+        return logout();
+      case 'whoami':
+        return whoami();
+      case 'send':
+        return send(args.command[0]);
+    }
   }
   if (args.help || args.command.length === 0) {
     console.log(USAGE);
@@ -81,15 +98,17 @@ async function main(): Promise<number> {
     }
   }
 
-  const file = saveRequest(built.request);
-  console.log(pc.green('\n✔ Demande prête.'));
-  console.log(pc.dim(`  Le serveur SOS Dev arrive à l’étape 2 : en attendant, la demande est enregistrée dans\n  ${file}`));
+  await deliver(built.request);
   return result.exitCode;
 }
 
 main().then(
   (code) => process.exit(code),
   (error: unknown) => {
+    if (error instanceof ApiError) {
+      console.error(pc.red(`sos : ${error.message}`));
+      process.exit(1);
+    }
     if (error instanceof CliError) {
       console.error(pc.red(`sos : ${error.message}`));
       console.error(pc.dim('Lance « sos --help » pour voir l’aide.'));

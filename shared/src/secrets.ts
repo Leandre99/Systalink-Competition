@@ -100,9 +100,11 @@ function lineAt(text: string, offset: number): number {
   return line;
 }
 
+const PLACEHOLDER_PREFIX = '[MASQUÉ:';
+
 function placeholder(ruleId: string, original: string): string {
   const newlines = original.split('\n').length - 1;
-  return `[MASQUÉ:${ruleId}]` + '\n'.repeat(newlines);
+  return `${PLACEHOLDER_PREFIX}${ruleId}]` + '\n'.repeat(newlines);
 }
 
 function applyRule(text: string, rule: SecretRule, findings: SecretFinding[]): string {
@@ -118,6 +120,8 @@ function applyRule(text: string, rule: SecretRule, findings: SecretFinding[]): s
     const source = args[last] as string;
     const offset = args[last - 1] as number;
     const secret = groups?.secret ?? match;
+    // Already masked (earlier rule, or the CLI before the server): keep it, count it once.
+    if (secret.startsWith(PLACEHOLDER_PREFIX)) return match;
     if (rule.skip?.(secret, groups ?? {})) return match;
     findings.push({ ruleId: rule.id, label: rule.label, line: lineAt(source, offset) });
     if (groups?.secret !== undefined) {

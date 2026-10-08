@@ -7,7 +7,7 @@ export function sosHome(): string {
   return process.env.SOS_HOME ?? path.join(os.homedir(), '.sos');
 }
 
-/** Until the server exists (step 2), validated requests are kept locally. */
+/** Keeps a validated request on disk when it cannot be sent (offline, not logged in). */
 export function saveRequest(request: SosRequest): string {
   const dir = path.join(sosHome(), 'demandes');
   fs.mkdirSync(dir, { recursive: true, mode: 0o700 });

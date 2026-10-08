@@ -7,6 +7,21 @@ on:
 jobs:
   verifications:
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: pgvector/pgvector:pg16
+        env:
+          POSTGRES_USER: sos
+          POSTGRES_PASSWORD: sos
+          POSTGRES_DB: sos_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U sos"
+          --health-interval 2s
+          --health-retries 15
+    env:
+      TEST_DATABASE_URL: postgres://sos:sos@localhost:5432/sos_test
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
