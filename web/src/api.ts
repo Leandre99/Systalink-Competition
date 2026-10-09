@@ -1,4 +1,4 @@
-import type { ClientMessage, PublicUser, ServerMessage, SessionResponse } from '@sos/shared';
+import type { ClientMessage, Passport, PublicUser, ServerMessage, SessionResponse, SolutionDraft, SolutionHit } from '@sos/shared';
 
 const TOKEN_KEY = 'sos.token';
 
@@ -24,7 +24,12 @@ export async function loginDev(login: string): Promise<SessionResponse> {
 }
 
 export const me = (token: string) => call<PublicUser>('GET', '/me', undefined, token);
+export const passport = (token: string) => call<Passport>('GET', '/me/passport', undefined, token);
 export const logout = (token: string) => call<void>('POST', '/auth/logout', undefined, token).finally(forgetToken);
+export const searchSolutions = (query: string, tech: string[]) =>
+  call<SolutionHit[]>(`GET`, `/solutions/search?q=${encodeURIComponent(query)}&tech=${encodeURIComponent(tech.join(','))}`);
+export const getSolutionDraft = (token: string, requestId: string) => call<SolutionDraft | null>('GET', `/solutions/drafts/${requestId}`, undefined, token);
+export const approveSolutionDraft = (token: string, requestId: string) => call<SolutionDraft>('POST', `/solutions/drafts/${requestId}/approve`, undefined, token);
 
 export function connectRadar(token: string, onMessage: (m: ServerMessage) => void, onClose: () => void) {
   const ws = new WebSocket(`${location.protocol === 'https:' ? 'wss' : 'ws'}://${location.host}/ws`);

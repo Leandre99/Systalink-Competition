@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import { solutionWords } from '../solutions/words.js';
-import type { NewRequest, NewSolution, PurgeResult, Solution, Store, StoredRequest, User, UserInput } from './types.js';
+import type { NewRequest, NewSolution, PurgeResult, Solution, SolutionDraft, Store, StoredRequest, User, UserInput } from './types.js';
 
 /** In-memory store for tests and quick local runs without PostgreSQL. */
 export class MemoryStore implements Store {
@@ -10,6 +10,7 @@ export class MemoryStore implements Store {
   private readonly requests = new Map<string, StoredRequest>();
   private readonly helperTech = new Map<string, string[]>();
   private readonly solutions = new Map<string, Solution>();
+  private readonly drafts = new Map<string, SolutionDraft>();
 
   async upsertUser(input: UserInput): Promise<User> {
     const existing = [...this.users.values()].find((u) => u.provider === input.provider && u.providerId === input.providerId);
@@ -92,6 +93,13 @@ export class MemoryStore implements Store {
     return true;
   }
 
+  async resolveRequest(id: string, userId: string, now: Date): Promise<boolean> {
+    const r = this.requests.get(id);
+    if (!r || r.status !== 'acceptee' || r.expiresAt <= now || (r.userId !== userId && r.helperId !== userId)) return false;
+    Object.assign(r, { status: 'resolue', expiresAt: now });
+    return true;
+  }
+
   async getUser(id: string): Promise<User | null> {
     const user = this.users.get(id);
     return user ? structuredClone(user) : null;
@@ -103,6 +111,43 @@ export class MemoryStore implements Store {
 
   async getHelperTech(userId: string): Promise<string[]> {
     return [...(this.helperTech.get(userId) ?? [])];
+  }
+
+  async createSolutionDraft(input: Omit<SolutionDraft, 'requesterApproved' | 'helperApproved' | 'published'>): Promise<SolutionDraft> {
+    const draft = { ...structuredClone(input), requesterApproved: false, helperApproved: false, published: false };
+    this.drafts.set(input.requestId, draft);
+    return structuredClone(draft);
+  }
+
+  async getSolutionDraft(requestId: string): Promise<SolutionDraft | null> {
+    const draft = this.drafts.get(requestId);
+    return draft ? structuredClone(draft) : null;
+  }
+
+  async approveSolutionDraft(requestId: string, userId: string): Promise<SolutionDraft | null> {
+    const draft = this.drafts.get(requestId);
+    const request = this.requests.get(requestId);
+    if (!draft || !request || (userId !== request.userId && userId !== request.helperId)) return null;
+    if (userId === request.userId) draft.requesterApproved = true;
+    if (userId === request.helperId) draft.helperApproved = true;
+    if (draft.requesterApproved && draft.helperApproved && !draft.published) {
+      draft.published = true;
+      this.solutions.set(draft.id, { id: draft.id, title: draft.title, error: draft.error, cause: draft.cause, fix: draft.fix, tech: draft.tech, createdAt: new Date() });
+    }
+    return structuredClone(draft);
+  }
+
+  async getPassportStats(userId: string) {
+    const resolved = [...this.requests.values()].filter((r) => r.status === 'resolue' && r.helperId === userId);
+    const minutes = resolved
+      .filter((r) => r.acceptedAt)
+      .map((r) => Math.max(0, (r.expiresAt.getTime() - r.acceptedAt!.getTime()) / 60000));
+    return {
+      helpsConfirmed: resolved.length,
+      averageResolutionMinutes: minutes.length ? Math.round((minutes.reduce((a, b) => a + b, 0) / minutes.length) * 10) / 10 : null,
+      technologies: [...new Set(resolved.flatMap((r) => r.tech))].sort(),
+      proofIds: resolved.map((r) => r.id),
+    };
   }
 
   async seedSolutions(solutions: NewSolution[]): Promise<void> {

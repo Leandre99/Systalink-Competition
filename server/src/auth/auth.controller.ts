@@ -1,4 +1,5 @@
 import { Body, Controller, Get, HttpCode, Inject, Post, Req, UseGuards } from '@nestjs/common';
+import type { Passport } from '@sos/shared';
 import { z } from 'zod';
 import type { User } from '../store/types.js';
 import { parseBody } from '../validation.js';
@@ -42,5 +43,11 @@ export class AuthController {
   @UseGuards(AuthGuard)
   me(@CurrentUser() user: User) {
     return publicUser(user);
+  }
+
+  @Get('me/passport')
+  @UseGuards(AuthGuard)
+  async passport(@CurrentUser() user: User): Promise<Passport> {
+    return { user: publicUser(user), ...(await this.auth.passport(user.id)) };
   }
 }

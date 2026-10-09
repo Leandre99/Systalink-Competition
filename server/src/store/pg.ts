@@ -1,7 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import type pg from 'pg';
 import type { SosRequest } from '@sos/shared';
-import type { NewRequest, NewSolution, Provider, PurgeResult, RequestStatus, Solution, Store, StoredRequest, User, UserInput } from './types.js';
+import type { NewRequest, NewSolution, Provider, PurgeResult, RequestStatus, Solution, SolutionDraft, Store, StoredRequest, User, UserInput } from './types.js';
 
 interface UserRow {
   id: string;
@@ -163,6 +163,15 @@ export class PgStore implements Store {
     return (result.rowCount ?? 0) > 0;
   }
 
+  async resolveRequest(id: string, userId: string, now: Date): Promise<boolean> {
+    const result = await this.pool.query(
+      `UPDATE requests SET status = 'resolue', resolved_at = $3, expires_at = $3
+       WHERE id = $1 AND status = 'acceptee' AND expires_at > $3 AND (user_id = $2 OR helper_id = $2)`,
+      [id, userId, now],
+    );
+    return (result.rowCount ?? 0) > 0;
+  }
+
   async getUser(id: string): Promise<User | null> {
     const { rows } = await this.pool.query<UserRow>('SELECT * FROM users WHERE id = $1', [id]);
     return rows[0] ? toUser(rows[0]) : null;
@@ -179,6 +188,61 @@ export class PgStore implements Store {
   async getHelperTech(userId: string): Promise<string[]> {
     const { rows } = await this.pool.query<{ tech: string[] }>('SELECT tech FROM helper_profiles WHERE user_id = $1', [userId]);
     return rows[0]?.tech ?? [];
+  }
+
+  async createSolutionDraft(input: Omit<SolutionDraft, 'requesterApproved' | 'helperApproved' | 'published'>): Promise<SolutionDraft> {
+    const { rows } = await this.pool.query(
+      `INSERT INTO solution_drafts (id, request_id, title, error, cause, fix, tech)
+       VALUES ($1,$2,$3,$4,$5,$6,$7) ON CONFLICT (request_id) DO UPDATE SET title=EXCLUDED.title,error=EXCLUDED.error,cause=EXCLUDED.cause,fix=EXCLUDED.fix,tech=EXCLUDED.tech RETURNING *`,
+      [input.id, input.requestId, input.title, input.error, input.cause, input.fix, input.tech],
+    );
+    return this.toDraft(rows[0]);
+  }
+
+  async getSolutionDraft(requestId: string): Promise<SolutionDraft | null> {
+    const { rows } = await this.pool.query('SELECT * FROM solution_drafts WHERE request_id = $1', [requestId]);
+    return rows[0] ? this.toDraft(rows[0]) : null;
+  }
+
+  async approveSolutionDraft(requestId: string, userId: string): Promise<SolutionDraft | null> {
+    const request = await this.pool.query<{ user_id: string; helper_id: string | null }>('SELECT user_id, helper_id FROM requests WHERE id = $1', [requestId]);
+    const r = request.rows[0];
+    if (!r || (r.user_id !== userId && r.helper_id !== userId)) return null;
+    const column = r.user_id === userId ? 'requester_approved' : 'helper_approved';
+    const { rows } = await this.pool.query(`UPDATE solution_drafts SET ${column} = true WHERE request_id = $1 RETURNING *`, [requestId]);
+    if (!rows[0]) return null;
+    if (rows[0].requester_approved && rows[0].helper_approved && !rows[0].published) {
+      await this.pool.query(`UPDATE solution_drafts SET published = true WHERE request_id = $1`, [requestId]);
+      await this.pool.query(
+        `INSERT INTO solutions (id,title,error,cause,fix,tech) VALUES ($1,$2,$3,$4,$5,$6) ON CONFLICT (id) DO NOTHING`,
+        [rows[0].id, rows[0].title, rows[0].error, rows[0].cause, rows[0].fix, rows[0].tech],
+      );
+    }
+    return this.toDraft((await this.pool.query('SELECT * FROM solution_drafts WHERE request_id = $1', [requestId])).rows[0]);
+  }
+
+  private toDraft(row: any): SolutionDraft {
+    return { id: row.id, requestId: row.request_id, title: row.title, error: row.error, cause: row.cause, fix: row.fix, tech: row.tech, requesterApproved: row.requester_approved, helperApproved: row.helper_approved, published: row.published };
+  }
+
+  async getPassportStats(userId: string) {
+    const stats = await this.pool.query<{ helps: string; avg_minutes: number | null }>(
+      `SELECT count(*) AS helps,
+              avg(EXTRACT(EPOCH FROM (resolved_at - accepted_at)) / 60) AS avg_minutes
+       FROM requests WHERE helper_id = $1 AND status = 'resolue'`,
+      [userId],
+    );
+    const proofs = await this.pool.query<{ id: string; tech: string[] }>(
+      `SELECT id, tech FROM requests WHERE helper_id = $1 AND status = 'resolue' ORDER BY resolved_at DESC`,
+      [userId],
+    );
+    const row = stats.rows[0]!;
+    return {
+      helpsConfirmed: Number(row.helps),
+      averageResolutionMinutes: row.avg_minutes == null ? null : Math.round(Number(row.avg_minutes) * 10) / 10,
+      technologies: [...new Set(proofs.rows.flatMap((proof) => proof.tech))].sort(),
+      proofIds: proofs.rows.map((proof) => proof.id),
+    };
   }
 
   async seedSolutions(solutions: NewSolution[]): Promise<void> {

@@ -28,4 +28,12 @@ export class SolutionsService {
       .sort((a, b) => b.score - a.score)
       .slice(0, limit);
   }
+
+  draft(requestId: string) {
+    return this.store.getSolutionDraft(requestId);
+  }
+
+  approve(requestId: string, userId: string) {
+    return this.store.approveSolutionDraft(requestId, userId);
+  }
 }

@@ -58,6 +58,10 @@ export class AuthService {
     return this.store.deleteSession(hashToken(token));
   }
 
+  async passport(userId: string) {
+    return this.store.getPassportStats(userId);
+  }
+
   private async openSession(input: UserInput): Promise<SessionResponse> {
     const user = await this.store.upsertUser(input);
     const token = `sos_${randomBytes(32).toString('base64url')}`;

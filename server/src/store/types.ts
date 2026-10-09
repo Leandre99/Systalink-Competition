@@ -14,7 +14,7 @@ export interface User {
 
 export type UserInput = Omit<User, 'id' | 'createdAt'>;
 
-export type RequestStatus = 'ouverte' | 'acceptee' | 'fermee';
+export type RequestStatus = 'ouverte' | 'acceptee' | 'resolue' | 'fermee';
 
 export interface StoredRequest {
   id: string;
@@ -49,6 +49,19 @@ export interface Solution {
 
 export type NewSolution = Omit<Solution, 'createdAt'>;
 
+export interface SolutionDraft {
+  id: string;
+  requestId: string;
+  title: string;
+  error: string;
+  cause: string;
+  fix: string;
+  tech: string[];
+  requesterApproved: boolean;
+  helperApproved: boolean;
+  published: boolean;
+}
+
 export interface PurgeResult {
   requests: number;
   sessions: number;
@@ -71,9 +84,15 @@ export interface Store {
   acceptRequest(id: string, helperId: string, now: Date): Promise<StoredRequest | null>;
   /** Closes an open or accepted request of this user. Returns false if there was nothing to close. */
   closeRequest(id: string, userId: string): Promise<boolean>;
+  /** « Problème résolu » by the requester or the helper of an accepted request: the code is erased now. */
+  resolveRequest(id: string, userId: string, now: Date): Promise<boolean>;
   getUser(id: string): Promise<User | null>;
   setHelperTech(userId: string, tech: string[]): Promise<void>;
   getHelperTech(userId: string): Promise<string[]>;
+  createSolutionDraft(input: Omit<SolutionDraft, 'requesterApproved' | 'helperApproved' | 'published'>): Promise<SolutionDraft>;
+  getSolutionDraft(requestId: string): Promise<SolutionDraft | null>;
+  approveSolutionDraft(requestId: string, userId: string): Promise<SolutionDraft | null>;
+  getPassportStats(userId: string): Promise<{ helpsConfirmed: number; averageResolutionMinutes: number | null; technologies: string[]; proofIds: string[] }>;
   /** Inserts the sheets that do not exist yet (by id). */
   seedSolutions(solutions: NewSolution[]): Promise<void>;
   /** Sheets containing at least one of these lowercase words (scoring is done by the caller). */
