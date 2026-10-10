@@ -1,7 +1,8 @@
-import { randomUUID } from 'node:crypto';
+import { createHash, randomUUID } from 'node:crypto';
+import { maskSecrets, type SosRequest } from '@sos/shared';
 import type pg from 'pg';
-import type { SosRequest } from '@sos/shared';
-import type { NewRequest, NewSolution, Provider, PurgeResult, RequestStatus, Solution, SolutionDraft, Store, StoredRequest, User, UserInput } from './types.js';
+import type { CafChallengeItem, CafEvalCriterion, CafEvaluationItem, CafEventItem, CafEventStatus, CafSubmissionItem, CafTeamItem, CafTeamJoinItem, CafTeamMemberItem, JoinRequestStatus, NewProjectInput, NewReportInput, NewRequest, NewSolution, PassportProofItem, PassportStatsResult, ProjectJoinItem, ProjectShowcaseItem, ProjectStatus, ProjectTaskItem, Provider, PurgeResult, ReportItem, ReportReason, ReportStatus, ReportTargetType, RequestStatus, Solution, SolutionDraft, Store, StoredRequest, TaskStatus, User, UserInput } from './types.js';
+
 
 interface UserRow {
   id: string;
@@ -199,8 +200,28 @@ export class PgStore implements Store {
     return this.toDraft(rows[0]);
   }
 
-  async getSolutionDraft(requestId: string): Promise<SolutionDraft | null> {
+  async getSolutionDraft(requestId: string, userId?: string): Promise<SolutionDraft | null> {
+    const request = await this.pool.query<{ user_id: string; helper_id: string | null }>('SELECT user_id, helper_id FROM requests WHERE id = $1', [requestId]);
+    const r = request.rows[0];
+    if (!r) return null;
+    if (userId && userId !== r.user_id && userId !== r.helper_id) return null;
     const { rows } = await this.pool.query('SELECT * FROM solution_drafts WHERE request_id = $1', [requestId]);
+    return rows[0] ? this.toDraft(rows[0]) : null;
+  }
+
+  async updateSolutionDraft(requestId: string, userId: string, update: { title?: string; cause?: string; fix?: string }): Promise<SolutionDraft | null> {
+    const request = await this.pool.query<{ user_id: string; helper_id: string | null }>('SELECT user_id, helper_id FROM requests WHERE id = $1', [requestId]);
+    const r = request.rows[0];
+    if (!r || (r.user_id !== userId && r.helper_id !== userId)) return null;
+    const current = await this.getSolutionDraft(requestId);
+    if (!current) return null;
+    const title = update.title ? maskSecrets(update.title).text : current.title;
+    const cause = update.cause ? maskSecrets(update.cause).text : current.cause;
+    const fix = update.fix ? maskSecrets(update.fix).text : current.fix;
+    const { rows } = await this.pool.query(
+      `UPDATE solution_drafts SET title = $1, cause = $2, fix = $3, requester_approved = false, helper_approved = false, published = false WHERE request_id = $4 RETURNING *`,
+      [title, cause, fix, requestId],
+    );
     return rows[0] ? this.toDraft(rows[0]) : null;
   }
 
@@ -225,23 +246,73 @@ export class PgStore implements Store {
     return { id: row.id, requestId: row.request_id, title: row.title, error: row.error, cause: row.cause, fix: row.fix, tech: row.tech, requesterApproved: row.requester_approved, helperApproved: row.helper_approved, published: row.published };
   }
 
-  async getPassportStats(userId: string) {
+  private readonly revokedProofs = new Set<string>();
+
+  async getPassportStats(userId: string): Promise<PassportStatsResult> {
     const stats = await this.pool.query<{ helps: string; avg_minutes: number | null }>(
       `SELECT count(*) AS helps,
               avg(EXTRACT(EPOCH FROM (resolved_at - accepted_at)) / 60) AS avg_minutes
        FROM requests WHERE helper_id = $1 AND status = 'resolue'`,
       [userId],
     );
-    const proofs = await this.pool.query<{ id: string; tech: string[] }>(
-      `SELECT id, tech FROM requests WHERE helper_id = $1 AND status = 'resolue' ORDER BY resolved_at DESC`,
+    const queryRes = await this.pool.query<{ id: string; tech: string[]; command: string; created_at: Date; payload: any }>(
+      `SELECT id, tech, command, created_at, payload FROM requests WHERE helper_id = $1 AND status = 'resolue' ORDER BY resolved_at DESC`,
       [userId],
     );
     const row = stats.rows[0]!;
+    const helpsConfirmed = Number(row.helps);
+
+    const proofs: PassportProofItem[] = queryRes.rows.map((r) => {
+      const dateIso = r.created_at.toISOString();
+      const proofHash = createHash('sha256').update(`${userId}:${r.id}:${dateIso}`).digest('hex');
+      const isRevoked = this.revokedProofs.has(`${userId}:${r.id}`);
+      return {
+        id: `proof-${r.id}`,
+        requestId: r.id,
+        confirmedAt: r.created_at,
+        tech: r.tech,
+        proofHash,
+        summary: r.payload?.output ? String(r.payload.output).slice(0, 120) : `Aide confirmée sur la commande ${r.command}`,
+        revoked: isRevoked,
+      };
+    });
+
     return {
-      helpsConfirmed: Number(row.helps),
+      helpsConfirmed,
+      points: helpsConfirmed * 10,
+      hasConfirmedBadge: helpsConfirmed > 0,
       averageResolutionMinutes: row.avg_minutes == null ? null : Math.round(Number(row.avg_minutes) * 10) / 10,
-      technologies: [...new Set(proofs.rows.flatMap((proof) => proof.tech))].sort(),
-      proofIds: proofs.rows.map((proof) => proof.id),
+      technologies: [...new Set(queryRes.rows.flatMap((proof) => proof.tech))].sort(),
+      proofs,
+    };
+  }
+
+  async revokePassportProof(userId: string, proofId: string, revoked: boolean): Promise<boolean> {
+    const realId = proofId.startsWith('proof-') ? proofId.slice(6) : proofId;
+    const key = `${userId}:${realId}`;
+    if (revoked) {
+      this.revokedProofs.add(key);
+    } else {
+      this.revokedProofs.delete(key);
+    }
+    return true;
+  }
+
+  async getPublicPassport(login: string): Promise<{ user: User; stats: PassportStatsResult } | null> {
+    const { rows } = await this.pool.query<UserRow>('SELECT * FROM users WHERE lower(login) = lower($1)', [login]);
+    if (!rows[0]) return null;
+    const user = toUser(rows[0]);
+    const fullStats = await this.getPassportStats(user.id);
+    const activeProofs = fullStats.proofs.filter((p) => !p.revoked);
+    return {
+      user,
+      stats: {
+        ...fullStats,
+        helpsConfirmed: activeProofs.length,
+        points: activeProofs.length * 10,
+        hasConfirmedBadge: activeProofs.length > 0,
+        proofs: activeProofs,
+      },
     };
   }
 
@@ -257,7 +328,13 @@ export class PgStore implements Store {
 
   async findSolutionCandidates(words: string[], limit: number): Promise<Solution[]> {
     const terms = words.filter((w) => /^[\p{L}\p{N}_]+$/u.test(w));
-    if (!terms.length) return [];
+    if (!terms.length) {
+      const { rows } = await this.pool.query<SolutionRow>(
+        `SELECT id, title, error, cause, fix, tech, created_at FROM solutions ORDER BY created_at DESC LIMIT $1`,
+        [limit],
+      );
+      return rows.map(toSolution);
+    }
     const { rows } = await this.pool.query<SolutionRow>(
       `SELECT id, title, error, cause, fix, tech, created_at FROM solutions
        WHERE search @@ to_tsquery('simple', $1)
@@ -266,6 +343,360 @@ export class PgStore implements Store {
       [terms.join(' | '), limit],
     );
     return rows.map(toSolution);
+  }
+
+  private readonly projects = new Map<string, ProjectShowcaseItem>();
+  private readonly joinRequests = new Map<string, ProjectJoinItem>();
+  private readonly tasks = new Map<string, ProjectTaskItem>();
+
+  async createProject(input: NewProjectInput): Promise<ProjectShowcaseItem> {
+    const id = randomUUID();
+    const now = new Date();
+    const item: ProjectShowcaseItem = {
+      id,
+      userId: input.userId,
+      name: maskSecrets(input.name).text,
+      description: maskSecrets(input.description).text,
+      tech: input.tech,
+      repositoryUrl: input.repositoryUrl ? maskSecrets(input.repositoryUrl).text : null,
+      demoUrl: input.demoUrl ? maskSecrets(input.demoUrl).text : null,
+      rolesNeeded: input.rolesNeeded,
+      status: input.status,
+      published: input.published,
+      createdAt: now,
+      updatedAt: now,
+    };
+    this.projects.set(id, item);
+    return structuredClone(item);
+  }
+
+  async updateProject(id: string, userId: string, update: Partial<NewProjectInput>): Promise<ProjectShowcaseItem | null> {
+    const item = this.projects.get(id);
+    if (!item || item.userId !== userId) return null;
+    if (update.name !== undefined) item.name = maskSecrets(update.name).text;
+    if (update.description !== undefined) item.description = maskSecrets(update.description).text;
+    if (update.tech !== undefined) item.tech = update.tech;
+    if (update.repositoryUrl !== undefined) item.repositoryUrl = update.repositoryUrl ? maskSecrets(update.repositoryUrl).text : null;
+    if (update.demoUrl !== undefined) item.demoUrl = update.demoUrl ? maskSecrets(update.demoUrl).text : null;
+    if (update.rolesNeeded !== undefined) item.rolesNeeded = update.rolesNeeded;
+    if (update.status !== undefined) item.status = update.status;
+    if (update.published !== undefined) item.published = update.published;
+    item.updatedAt = new Date();
+    return structuredClone(item);
+  }
+
+  async publishProject(id: string, userId: string, published: boolean): Promise<ProjectShowcaseItem | null> {
+    return this.updateProject(id, userId, { published });
+  }
+
+  async deleteProject(id: string, userId: string): Promise<boolean> {
+    const item = this.projects.get(id);
+    if (!item || item.userId !== userId) return false;
+    return this.projects.delete(id);
+  }
+
+  async getProject(id: string, userId?: string): Promise<ProjectShowcaseItem | null> {
+    const item = this.projects.get(id);
+    if (!item) return null;
+    if (!item.published && item.userId !== userId) return null;
+    return structuredClone(item);
+  }
+
+  async listProjects(filter?: { tech?: string[]; status?: ProjectStatus; search?: string }, userId?: string): Promise<ProjectShowcaseItem[]> {
+    return [...this.projects.values()]
+      .filter((p) => p.published || p.userId === userId)
+      .filter((p) => !filter?.status || p.status === filter.status)
+      .filter((p) => !filter?.tech?.length || p.tech.some((t) => filter.tech!.includes(t)))
+      .filter((p) => !filter?.search || p.name.toLowerCase().includes(filter.search.toLowerCase()) || p.description.toLowerCase().includes(filter.search.toLowerCase()))
+      .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
+      .map((p) => structuredClone(p));
+  }
+
+  async createJoinRequest(projectId: string, applicantId: string, message: string): Promise<ProjectJoinItem | null> {
+    const project = this.projects.get(projectId);
+    if (!project || !project.published || project.status !== 'ouvert') return null;
+    const existing = [...this.joinRequests.values()].find((r) => r.projectId === projectId && r.applicantId === applicantId);
+    if (existing) return structuredClone(existing);
+    const id = randomUUID();
+    const item: ProjectJoinItem = {
+      id,
+      projectId,
+      applicantId,
+      message: maskSecrets(message).text,
+      status: 'en_attente',
+      createdAt: new Date(),
+    };
+    this.joinRequests.set(id, item);
+    return structuredClone(item);
+  }
+
+  async listJoinRequests(projectId: string, ownerId: string): Promise<ProjectJoinItem[]> {
+    const project = this.projects.get(projectId);
+    if (!project || project.userId !== ownerId) return [];
+    return [...this.joinRequests.values()]
+      .filter((r) => r.projectId === projectId)
+      .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
+      .map((r) => structuredClone(r));
+  }
+
+  async getUserJoinRequest(projectId: string, applicantId: string): Promise<ProjectJoinItem | null> {
+    const item = [...this.joinRequests.values()].find((r) => r.projectId === projectId && r.applicantId === applicantId);
+    return item ? structuredClone(item) : null;
+  }
+
+  async respondJoinRequest(requestId: string, ownerId: string, status: 'acceptee' | 'refusee'): Promise<ProjectJoinItem | null> {
+    const item = this.joinRequests.get(requestId);
+    if (!item) return null;
+    const project = this.projects.get(item.projectId);
+    if (!project || project.userId !== ownerId) return null;
+    item.status = status;
+    return structuredClone(item);
+  }
+
+  async isProjectMember(projectId: string, userId: string): Promise<boolean> {
+    const project = this.projects.get(projectId);
+    if (!project) return false;
+    if (project.userId === userId) return true;
+    const acceptedReq = [...this.joinRequests.values()].find((r) => r.projectId === projectId && r.applicantId === userId && r.status === 'acceptee');
+    return !!acceptedReq;
+  }
+
+  async listTasks(projectId: string, userId: string): Promise<ProjectTaskItem[]> {
+    if (!(await this.isProjectMember(projectId, userId))) return [];
+    return [...this.tasks.values()]
+      .filter((t) => t.projectId === projectId)
+      .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
+      .map((t) => structuredClone(t));
+  }
+
+  async createTask(projectId: string, userId: string, title: string): Promise<ProjectTaskItem | null> {
+    if (!(await this.isProjectMember(projectId, userId))) return null;
+    const id = randomUUID();
+    const item: ProjectTaskItem = {
+      id,
+      projectId,
+      title: maskSecrets(title).text,
+      status: 'a_faire',
+      createdById: userId,
+      createdAt: new Date(),
+    };
+    this.tasks.set(id, item);
+    return structuredClone(item);
+  }
+
+  private readonly reports = new Map<string, ReportItem>();
+
+  async updateTask(projectId: string, taskId: string, userId: string, update: { title?: string; status?: TaskStatus }): Promise<ProjectTaskItem | null> {
+    if (!(await this.isProjectMember(projectId, userId))) return null;
+    const item = this.tasks.get(taskId);
+    if (!item || item.projectId !== projectId) return null;
+    if (update.title !== undefined) item.title = maskSecrets(update.title).text;
+    if (update.status !== undefined) item.status = update.status;
+    return structuredClone(item);
+  }
+
+  async createReport(input: NewReportInput): Promise<ReportItem> {
+    const id = randomUUID();
+    const item: ReportItem = {
+      id,
+      reporterId: input.reporterId,
+      targetType: input.targetType,
+      targetId: input.targetId,
+      reason: input.reason,
+      details: input.details ? maskSecrets(input.details).text : null,
+      status: 'en_attente',
+      createdAt: new Date(),
+    };
+    this.reports.set(id, item);
+    return structuredClone(item);
+  }
+
+  async hasRecentReport(reporterId: string, targetType: ReportTargetType, targetId: string): Promise<boolean> {
+    return [...this.reports.values()].some(
+      (r) => r.reporterId === reporterId && r.targetType === targetType && r.targetId === targetId && r.status === 'en_attente',
+    );
+  }
+
+  async countReportsSince(reporterId: string, since: Date): Promise<number> {
+    return [...this.reports.values()].filter((r) => r.reporterId === reporterId && r.createdAt >= since).length;
+  }
+
+  async listReports(status?: ReportStatus): Promise<ReportItem[]> {
+    return [...this.reports.values()]
+      .filter((r) => !status || r.status === status)
+      .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
+      .map((r) => structuredClone(r));
+  }
+
+  async resolveReport(reportId: string, status: 'traite' | 'rejete'): Promise<ReportItem | null> {
+    const item = this.reports.get(reportId);
+    if (!item) return null;
+    item.status = status;
+    return structuredClone(item);
+  }
+
+  // CAF maps in PgStore fallback
+  private readonly cafEvents = new Map<string, CafEventItem>();
+  private readonly cafTeams = new Map<string, CafTeamItem>();
+  private readonly cafTeamJoinRequests = new Map<string, CafTeamJoinItem>();
+  private readonly cafChallenges = new Map<string, CafChallengeItem>();
+  private readonly cafSubmissions = new Map<string, CafSubmissionItem>();
+  private readonly cafEvaluations = new Map<string, CafEvaluationItem>();
+
+  async createCafEvent(input: Omit<CafEventItem, 'id' | 'createdAt'>): Promise<CafEventItem> {
+    const id = randomUUID();
+    const item: CafEventItem = {
+      id,
+      ...input,
+      title: maskSecrets(input.title).text,
+      theme: maskSecrets(input.theme).text,
+      rules: maskSecrets(input.rules).text,
+      createdAt: new Date(),
+    };
+    this.cafEvents.set(id, item);
+    return structuredClone(item);
+  }
+
+  async getCafEvent(id: string): Promise<CafEventItem | null> {
+    const item = this.cafEvents.get(id);
+    return item ? structuredClone(item) : null;
+  }
+
+  async listCafEvents(status?: CafEventStatus): Promise<CafEventItem[]> {
+    return [...this.cafEvents.values()]
+      .filter((e) => !status || e.status === status)
+      .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
+      .map((e) => structuredClone(e));
+  }
+
+  async updateCafEventStatus(id: string, status: CafEventStatus): Promise<CafEventItem | null> {
+    const item = this.cafEvents.get(id);
+    if (!item) return null;
+    item.status = status;
+    return structuredClone(item);
+  }
+
+  async createCafTeam(input: Omit<CafTeamItem, 'id' | 'createdAt'>): Promise<CafTeamItem> {
+    const id = randomUUID();
+    const item: CafTeamItem = {
+      id,
+      ...input,
+      name: maskSecrets(input.name).text,
+      region: maskSecrets(input.region).text,
+      createdAt: new Date(),
+    };
+    this.cafTeams.set(id, item);
+    return structuredClone(item);
+  }
+
+  async getCafTeam(id: string): Promise<CafTeamItem | null> {
+    const item = this.cafTeams.get(id);
+    return item ? structuredClone(item) : null;
+  }
+
+  async listCafTeams(eventId: string): Promise<CafTeamItem[]> {
+    return [...this.cafTeams.values()]
+      .filter((t) => t.eventId === eventId)
+      .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
+      .map((t) => structuredClone(t));
+  }
+
+  async createCafTeamJoinRequest(teamId: string, applicantId: string, country: string, role: string, message: string): Promise<CafTeamJoinItem | null> {
+    const team = this.cafTeams.get(teamId);
+    if (!team) return null;
+    const id = randomUUID();
+    const item: CafTeamJoinItem = {
+      id,
+      teamId,
+      applicantId,
+      country: maskSecrets(country).text,
+      role: maskSecrets(role).text,
+      message: maskSecrets(message).text,
+      status: 'en_attente',
+      createdAt: new Date(),
+    };
+    this.cafTeamJoinRequests.set(id, item);
+    return structuredClone(item);
+  }
+
+  async listCafTeamJoinRequests(teamId: string, leaderId: string): Promise<CafTeamJoinItem[]> {
+    const team = this.cafTeams.get(teamId);
+    if (!team || team.leaderId !== leaderId) return [];
+    return [...this.cafTeamJoinRequests.values()]
+      .filter((r) => r.teamId === teamId)
+      .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
+      .map((r) => structuredClone(r));
+  }
+
+  async respondCafTeamJoinRequest(requestId: string, leaderId: string, status: 'acceptee' | 'refusee'): Promise<CafTeamJoinItem | null> {
+    const req = this.cafTeamJoinRequests.get(requestId);
+    if (!req) return null;
+    const team = this.cafTeams.get(req.teamId);
+    if (!team || team.leaderId !== leaderId) return null;
+    req.status = status;
+    if (status === 'acceptee') {
+      if (!team.members.some((m) => m.userId === req.applicantId)) {
+        team.members.push({ userId: req.applicantId, country: req.country, role: req.role });
+      }
+    }
+    return structuredClone(req);
+  }
+
+  async createCafChallenge(input: Omit<CafChallengeItem, 'id'>): Promise<CafChallengeItem> {
+    const id = randomUUID();
+    const item: CafChallengeItem = {
+      id,
+      ...input,
+      title: maskSecrets(input.title).text,
+      description: maskSecrets(input.description).text,
+    };
+    this.cafChallenges.set(id, item);
+    return structuredClone(item);
+  }
+
+  async listCafChallenges(eventId: string): Promise<CafChallengeItem[]> {
+    return [...this.cafChallenges.values()]
+      .filter((c) => c.eventId === eventId)
+      .map((c) => structuredClone(c));
+  }
+
+  async createCafSubmission(input: Omit<CafSubmissionItem, 'id' | 'submittedAt'>): Promise<CafSubmissionItem | null> {
+    const id = randomUUID();
+    const item: CafSubmissionItem = {
+      id,
+      ...input,
+      repositoryUrl: maskSecrets(input.repositoryUrl).text,
+      demoUrl: maskSecrets(input.demoUrl).text,
+      presentation: maskSecrets(input.presentation).text,
+      submittedAt: new Date(),
+    };
+    this.cafSubmissions.set(id, item);
+    return structuredClone(item);
+  }
+
+  async listCafSubmissions(eventId: string): Promise<CafSubmissionItem[]> {
+    return [...this.cafSubmissions.values()]
+      .filter((s) => s.eventId === eventId)
+      .sort((a, b) => b.submittedAt.getTime() - a.submittedAt.getTime())
+      .map((s) => structuredClone(s));
+  }
+
+  async createCafEvaluation(input: Omit<CafEvaluationItem, 'id' | 'evaluatedAt'>): Promise<CafEvaluationItem> {
+    const id = randomUUID();
+    const item: CafEvaluationItem = {
+      id,
+      ...input,
+      comments: input.comments ? maskSecrets(input.comments).text : null,
+      evaluatedAt: new Date(),
+    };
+    this.cafEvaluations.set(id, item);
+    return structuredClone(item);
+  }
+
+  async listCafEvaluations(eventId: string): Promise<CafEvaluationItem[]> {
+    return [...this.cafEvaluations.values()]
+      .filter((e) => e.eventId === eventId)
+      .map((e) => structuredClone(e));
   }
 
   async purgeExpired(now: Date): Promise<PurgeResult> {
@@ -278,3 +709,4 @@ export class PgStore implements Store {
     await this.pool.end();
   }
 }
+

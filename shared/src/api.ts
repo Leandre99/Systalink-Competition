@@ -8,12 +8,25 @@ export interface PublicUser {
   provider: 'github' | 'dev';
 }
 
+export interface PassportProof {
+  id: string;
+  requestId: string;
+  confirmedAt: string;
+  tech: string[];
+  proofHash: string;
+  summary: string;
+  revoked: boolean;
+}
+
 export interface Passport {
   user: PublicUser;
   helpsConfirmed: number;
+  points: number;
+  hasConfirmedBadge: boolean;
   averageResolutionMinutes: number | null;
   technologies: string[];
-  proofIds: string[];
+  proofs: PassportProof[];
+  shareUrl?: string;
 }
 
 export interface SessionResponse {
@@ -76,6 +89,61 @@ export interface SolutionDraft {
   requesterApproved: boolean;
   helperApproved: boolean;
   published: boolean;
+}
+
+export type ProjectStatus = 'ouvert' | 'ferme';
+
+export interface ShowcaseProject {
+  id: string;
+  userId: string;
+  author: PublicUser;
+  name: string;
+  description: string;
+  tech: string[];
+  repositoryUrl?: string | null;
+  demoUrl?: string | null;
+  rolesNeeded: string[];
+  status: ProjectStatus;
+  published: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export type JoinRequestStatus = 'en_attente' | 'acceptee' | 'refusee';
+
+export interface ProjectJoinRequest {
+  id: string;
+  projectId: string;
+  applicant: PublicUser;
+  message: string;
+  status: JoinRequestStatus;
+  createdAt: string;
+}
+
+export type TaskStatus = 'a_faire' | 'en_cours' | 'termine';
+
+export interface ProjectTask {
+  id: string;
+  projectId: string;
+  title: string;
+  status: TaskStatus;
+  createdBy: PublicUser;
+  createdAt: string;
+}
+
+export type ReportReason = 'pas_clair' | 'doublon' | 'inapproprie';
+export type ReportTargetType = 'fiche_solution' | 'demande_sos' | 'projet' | 'autre';
+export type ReportStatus = 'en_attente' | 'traite' | 'rejete';
+
+export interface Report {
+  id: string;
+  reporter: PublicUser;
+  targetType: ReportTargetType;
+  targetId: string;
+  reason: ReportReason;
+  details?: string | null;
+  status: ReportStatus;
+  createdAt: string;
 }
 
 /** ciblee : helpers of the same tech · elargie : close techs (after 2 min) · publique : everyone (after 5 min). */
@@ -176,4 +244,95 @@ export interface SalleState {
   /** Web page of the room. */
   url: string;
   expiresAt: string;
+}
+
+/** Module Coupe d'Afrique Francophone (CAF) */
+export type CafEventStatus = 'brouillon' | 'inscriptions' | 'en_cours' | 'termine';
+
+export interface CafEvalCriterion {
+  key: string;
+  label: string;
+  maxScore: number;
+}
+
+export interface CafEvent {
+  id: string;
+  title: string;
+  theme: string;
+  rules: string;
+  startDate: string;
+  endDate: string;
+  status: CafEventStatus;
+  organizer: PublicUser;
+  juryLogins: string[];
+  criteria: CafEvalCriterion[];
+  createdAt: string;
+}
+
+export interface CafTeamMember {
+  user: PublicUser;
+  country: string;
+  role: string;
+}
+
+export interface CafTeam {
+  id: string;
+  eventId: string;
+  name: string;
+  region: string;
+  leader: PublicUser;
+  members: CafTeamMember[];
+  createdAt: string;
+}
+
+export interface CafTeamJoinRequest {
+  id: string;
+  teamId: string;
+  applicant: PublicUser;
+  country: string;
+  role: string;
+  message: string;
+  status: 'en_attente' | 'acceptee' | 'refusee';
+  createdAt: string;
+}
+
+export interface CafChallenge {
+  id: string;
+  eventId: string;
+  title: string;
+  description: string;
+  durationHours: number;
+  tech: string[];
+}
+
+export interface CafSubmission {
+  id: string;
+  eventId: string;
+  challengeId: string;
+  teamId: string;
+  teamName: string;
+  repositoryUrl: string;
+  demoUrl: string;
+  presentation: string;
+  submittedAt: string;
+}
+
+export interface CafEvaluation {
+  id: string;
+  eventId: string;
+  submissionId: string;
+  jury: PublicUser;
+  scores: Record<string, number>;
+  comments?: string;
+  evaluatedAt: string;
+}
+
+export interface CafTeamRanking {
+  rank: number;
+  teamId: string;
+  teamName: string;
+  region: string;
+  countries: string[];
+  totalScore: number;
+  criteriaScores: Record<string, number>;
 }

@@ -1,5 +1,5 @@
 import { createHash, randomBytes } from 'node:crypto';
-import { BadGatewayException, ForbiddenException, Inject, Injectable, UnauthorizedException } from '@nestjs/common';
+import { BadGatewayException, ForbiddenException, Inject, Injectable, NotFoundException, UnauthorizedException } from '@nestjs/common';
 import type { PublicUser, SessionResponse } from '@sos/shared';
 import type { AppConfig } from '../config.js';
 import type { Store, User, UserInput } from '../store/types.js';
@@ -59,7 +59,52 @@ export class AuthService {
   }
 
   async passport(userId: string) {
-    return this.store.getPassportStats(userId);
+    const stats = await this.store.getPassportStats(userId);
+    return {
+      helpsConfirmed: stats.helpsConfirmed,
+      points: stats.points,
+      hasConfirmedBadge: stats.hasConfirmedBadge,
+      averageResolutionMinutes: stats.averageResolutionMinutes,
+      technologies: stats.technologies,
+      proofs: stats.proofs.map((p) => ({
+        id: p.id,
+        requestId: p.requestId,
+        confirmedAt: p.confirmedAt.toISOString(),
+        tech: p.tech,
+        proofHash: p.proofHash,
+        summary: p.summary,
+        revoked: p.revoked,
+      })),
+    };
+  }
+
+  async revokePassportProof(userId: string, proofId: string, revoked: boolean) {
+    const ok = await this.store.revokePassportProof(userId, proofId, revoked);
+    if (!ok) throw new NotFoundException('Preuve introuvable ou non autorisée.');
+    return { success: true };
+  }
+
+  async getPublicPassport(login: string) {
+    const res = await this.store.getPublicPassport(login);
+    if (!res) throw new NotFoundException('Passeport non trouvé pour cet utilisateur.');
+    const { user, stats } = res;
+    return {
+      user: publicUser(user),
+      helpsConfirmed: stats.helpsConfirmed,
+      points: stats.points,
+      hasConfirmedBadge: stats.hasConfirmedBadge,
+      averageResolutionMinutes: stats.averageResolutionMinutes,
+      technologies: stats.technologies,
+      proofs: stats.proofs.map((p) => ({
+        id: p.id,
+        requestId: p.requestId,
+        confirmedAt: p.confirmedAt.toISOString(),
+        tech: p.tech,
+        proofHash: p.proofHash,
+        summary: p.summary,
+        revoked: false,
+      })),
+    };
   }
 
   private async openSession(input: UserInput): Promise<SessionResponse> {

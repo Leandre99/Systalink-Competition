@@ -109,6 +109,10 @@ export class RequestsService {
     return (await this.store.listRequests(user.id, this.now())).map(summary);
   }
 
+  async listOpen(): Promise<RequestSummary[]> {
+    return (await this.store.listOpenRequests(this.now())).map(summary);
+  }
+
   async get(user: User, id: string): Promise<RequestDetail> {
     const stored = UUID.test(id) ? await this.store.getRequest(id, this.now()) : null;
     if (!stored) throw new NotFoundException('Demande introuvable, ou déjà effacée.');

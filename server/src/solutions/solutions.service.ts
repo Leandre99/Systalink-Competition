@@ -12,10 +12,24 @@ export class SolutionsService {
   constructor(@Inject(STORE) private readonly store: Store) {}
 
   /** Sheets whose title or error share enough words with the user's error. */
-  async search(query: string, tech: string[], limit = 3): Promise<SolutionHit[]> {
+  async search(query: string, tech: string[], limit = 20): Promise<SolutionHit[]> {
     const words = solutionWords(query);
-    if (!words.length) return [];
-    const candidates = await this.store.findSolutionCandidates(words, 20);
+    if (!words.length) {
+      const candidates = await this.store.findSolutionCandidates([], 50);
+      return candidates
+        .filter((s) => tech.length === 0 || s.tech.some((t) => tech.includes(t)))
+        .map((s) => ({
+          id: s.id,
+          title: s.title,
+          error: s.error,
+          cause: s.cause,
+          fix: s.fix,
+          tech: s.tech,
+          score: 1.0,
+        }))
+        .slice(0, limit);
+    }
+    const candidates = await this.store.findSolutionCandidates(words, 50);
     return candidates
       .map((s) => {
         const signature = new Set(solutionWords(`${s.title} ${s.error}`, 1000));
@@ -24,13 +38,17 @@ export class SolutionsService {
         const score = Math.min(1, Math.round((shared + (shared > 0 ? bonus : 0)) * 100) / 100);
         return { id: s.id, title: s.title, error: s.error, cause: s.cause, fix: s.fix, tech: s.tech, score };
       })
-      .filter((hit) => hit.score >= MIN_SCORE)
+      .filter((hit) => hit.score >= MIN_SCORE && (tech.length === 0 || hit.tech.some((t) => tech.includes(t))))
       .sort((a, b) => b.score - a.score)
       .slice(0, limit);
   }
 
-  draft(requestId: string) {
-    return this.store.getSolutionDraft(requestId);
+  draft(requestId: string, userId: string) {
+    return this.store.getSolutionDraft(requestId, userId);
+  }
+
+  update(requestId: string, userId: string, update: { title?: string; cause?: string; fix?: string }) {
+    return this.store.updateSolutionDraft(requestId, userId, update);
   }
 
   approve(requestId: string, userId: string) {

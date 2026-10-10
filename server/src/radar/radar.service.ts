@@ -83,6 +83,24 @@ export class RadarService implements OnApplicationBootstrap, BeforeApplicationSh
     this.wss?.close();
   }
 
+  getAvailableHelpers(): Array<{ id: string; login: string; name: string | null; avatarUrl: string | null; tech: string[] }> {
+    const list: Array<{ id: string; login: string; name: string | null; avatarUrl: string | null; tech: string[] }> = [];
+    const seen = new Set<string>();
+    for (const c of this.connections) {
+      if (c.user && c.tech && c.tech.length > 0 && !seen.has(c.user.id)) {
+        seen.add(c.user.id);
+        list.push({
+          id: c.user.id,
+          login: c.user.login,
+          name: c.user.name,
+          avatarUrl: c.user.avatarUrl,
+          tech: c.tech,
+        });
+      }
+    }
+    return list;
+  }
+
   stageOf(request: StoredRequest, now = this.now()): RadarStage {
     const age = (now.getTime() - request.createdAt.getTime()) / 1000;
     if (age >= this.config.publicAfterSeconds) return 'publique';

@@ -8,7 +8,8 @@ import { oneDark } from '@codemirror/theme-one-dark';
 import { yCollab } from 'y-codemirror.next';
 import * as Y from 'yjs';
 import type { ChatMessage, PublicUser, SalleMember, SalleState, ServerMessage, SolutionDraft } from '@sos/shared';
-import { approveSolutionDraft, connectRadar, getSolutionDraft } from './api.js';
+import { approveSolutionDraft, connectRadar, getSolutionDraft, updateSolutionDraft } from './api.js';
+import { ReportModal } from './ReportModal.js';
 
 const REMOTE = 'serveur';
 
@@ -57,6 +58,11 @@ export function Salle({ token, user, requestId, onLeave }: { token: string; user
   const [error, setError] = useState('');
   const [draft, setDraft] = useState('');
   const [solution, setSolution] = useState<SolutionDraft | null>(null);
+  const [lowConnection, setLowConnection] = useState(false);
+  const [pastedCode, setPastedCode] = useState('');
+  const [deferredMessage, setDeferredMessage] = useState('');
+  const [deferredSent, setDeferredSent] = useState(false);
+  const [showReportModal, setShowReportModal] = useState(false);
   const socket = useRef<ReturnType<typeof connectRadar> | null>(null);
   const terminalEnd = useRef<HTMLPreElement>(null);
   const chatEnd = useRef<HTMLDivElement>(null);
@@ -110,7 +116,10 @@ export function Salle({ token, user, requestId, onLeave }: { token: string; user
           return setError(m.message);
       }
     };
-    socket.current = connectRadar(token, onMessage, () => setError((e) => e || 'Connexion perdue. Recharge la page pour revenir dans la salle.'));
+    socket.current = connectRadar(token, onMessage, () => {
+      setLowConnection(true);
+      setError((e) => e || 'Connexion réseau instable. Bascule en mode connexion faible.');
+    });
     return () => {
       socket.current?.close();
       current?.destroy();
@@ -158,6 +167,16 @@ export function Salle({ token, user, requestId, onLeave }: { token: string; user
     socket.current?.send({ type, requestId });
   };
 
+  const sendDeferredResponse = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!deferredMessage.trim() && !pastedCode.trim()) return;
+    const textToSend = `[Réponse différée / Connexion faible]\n${deferredMessage}\n${pastedCode ? `\nCode proposé :\n${pastedCode}` : ''}`;
+    socket.current?.send({ type: 'message', requestId, text: textToSend });
+    setDeferredSent(true);
+    setDeferredMessage('');
+    setTimeout(() => setDeferredSent(false), 4000);
+  };
+
   return (
     <div className="salle">
       <header>
@@ -167,6 +186,26 @@ export function Salle({ token, user, requestId, onLeave }: { token: string; user
         </span>
         <span className={otherOnline ? 'dot on' : 'dot'} title={otherOnline ? 'En ligne' : 'Absent'} />
         <span className="who">@{user.login}</span>
+
+        {/* Indicateur et toggle Connexion Faible */}
+        <button
+          className="link"
+          style={{ fontSize: '0.85rem', color: lowConnection ? '#d29922' : '#3fb950' }}
+          onClick={() => setLowConnection(!lowConnection)}
+          title="Cliquez pour basculer en mode asynchrone / connexion faible"
+        >
+          {lowConnection ? '🟡 Connexion faible (Asynchrone)' : '🟢 Synchronisé (Yjs CRDT)'}
+        </button>
+
+        <button
+          className="link"
+          style={{ fontSize: '0.85rem', color: '#cbd5e0', opacity: 0.85 }}
+          onClick={() => setShowReportModal(true)}
+          title="Signaler un comportement inapproprié ou un contenu abusif"
+        >
+          🚩 Signaler
+        </button>
+
         <button
           className="resolve"
           onClick={() => {
@@ -177,9 +216,26 @@ export function Salle({ token, user, requestId, onLeave }: { token: string; user
         </button>
       </header>
 
+      {showReportModal && (
+        <ReportModal
+          token={token}
+          targetType="demande_sos"
+          targetId={requestId}
+          targetTitle={`Demande SOS: ${salle.command}`}
+          onClose={() => setShowReportModal(false)}
+        />
+      )}
+
       <section className="card summary">
-        <code className="error-line">{salle.errorSummary}</code>
-        <span className="hint">
+        <div className="row" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <code className="error-line" style={{ flex: 1, margin: 0 }}>{salle.errorSummary}</code>
+          {exitCode === 0 && (
+            <span className="stage" style={{ background: '#238636', marginLeft: '12px' }}>
+              🟢 Test confirmé : Au vert
+            </span>
+          )}
+        </div>
+        <span className="hint" style={{ marginTop: '4px' }}>
           $ {salle.command} · {salle.tech.join(' · ') || 'Techno inconnue'}
         </span>
       </section>
@@ -187,38 +243,99 @@ export function Salle({ token, user, requestId, onLeave }: { token: string; user
       {error && <p className="error">{error}</p>}
 
       <div className="salle-grid">
-        <section className="card code">
-          <div className="tabs">
-            {salle.files.map((f) => (
-              <button key={f.path} className={f.path === file ? 'tab on' : 'tab'} onClick={() => setFile(f.path)}>
-                {f.path}
-              </button>
-            ))}
-          </div>
-          {current ? <Editor key={current.path} doc={doc} path={current.path} line={current.line} /> : <p className="hint">Aucun fichier partagé.</p>}
-          {isHelper && (
-            <div className="actions">
-              <button onClick={() => send('proposer')} disabled={!terminalOnline} title="Le demandeur verra le diff dans son terminal et répondra o/n.">
-                Envoyer mes corrections
-              </button>
-              <button onClick={() => send('relance')} disabled={!terminalOnline || running} title="Le demandeur appuie sur Entrée pour relancer.">
-                Demander une relance
-              </button>
-              {!terminalOnline && <span className="hint">Le terminal du demandeur n’est pas relié.</span>}
-            </div>
-          )}
-        </section>
+        {/* MODE CONNEXION FAIBLE : CODE COLLÉ + RÉPONSE DIFFÉRÉE */}
+        {lowConnection ? (
+          <section className="card code">
+            <h2>🟡 Mode Connexion Faible (Réponse différée)</h2>
+            <p className="hint">
+              En raison d'une connexion réseau instable, le mode temps réel est temporairement suspendu. Tu peux coller ton code corrigé et envoyer une explication différée. Aucun code n'est exécuté sur le serveur.
+            </p>
 
+            <form onSubmit={sendDeferredResponse} style={{ marginTop: '12px' }}>
+              <div>
+                <label htmlFor="pasted-code" className="hint" style={{ display: 'block', marginBottom: '4px' }}>
+                  Extrait de code corrigé (Code collé)
+                </label>
+                <textarea
+                  id="pasted-code"
+                  rows={8}
+                  value={pastedCode}
+                  onChange={(e) => setPastedCode(e.target.value)}
+                  placeholder="Collez le code corrigé ici..."
+                  style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #30363d', background: '#0d1117', color: 'inherit', fontFamily: 'monospace', boxSizing: 'border-box' }}
+                />
+              </div>
+
+              <div style={{ marginTop: '10px' }}>
+                <label htmlFor="deferred-msg" className="hint" style={{ display: 'block', marginBottom: '4px' }}>
+                  Explication ou instructions pour le partenaire
+                </label>
+                <textarea
+                  id="deferred-msg"
+                  rows={4}
+                  value={deferredMessage}
+                  onChange={(e) => setDeferredMessage(e.target.value)}
+                  placeholder="Expliquez votre correction ou donnez des conseils..."
+                  style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #30363d', background: '#0d1117', color: 'inherit', boxSizing: 'border-box' }}
+                />
+              </div>
+
+              {deferredSent && <p className="success-text" style={{ marginTop: '8px' }}>✓ Réponse différée transmise au fil de discussion !</p>}
+
+              <div className="actions" style={{ marginTop: '12px' }}>
+                <button type="submit">Envoyer la réponse différée</button>
+                <button type="button" className="link" onClick={() => setLowConnection(false)}>Revenir au mode Temps réel</button>
+              </div>
+            </form>
+          </section>
+        ) : (
+          /* MODE TEMPS RÉEL EXÉCUTÉ PAR CODEMIRROR + YJS */
+          <section className="card code">
+            <div className="tabs">
+              {salle.files.map((f) => (
+                <button key={f.path} className={f.path === file ? 'tab on' : 'tab'} onClick={() => setFile(f.path)}>
+                  📄 {f.path} {f.line ? `(L${f.line})` : ''}
+                </button>
+              ))}
+            </div>
+            {current ? <Editor key={current.path} doc={doc} path={current.path} line={current.line} /> : <p className="hint">Aucun fichier partagé.</p>}
+            {isHelper && (
+              <div className="actions">
+                <button onClick={() => send('proposer')} disabled={!terminalOnline} title="Le demandeur verra le diff dans son terminal et répondra o/n.">
+                  Envoyer mes corrections
+                </button>
+                <button onClick={() => send('relance')} disabled={!terminalOnline || running} title="Le demandeur appuie sur Entrée pour relancer.">
+                  Demander une relance
+                </button>
+                {!terminalOnline && <span className="hint">Le terminal du demandeur n’est pas relié.</span>}
+              </div>
+            )}
+          </section>
+        )}
+
+        {/* SECTION LATÉRALE : TERMINAL, PARTICIPANTS ET CHAT */}
         <section className="card side">
           <h2>
             Terminal de @{salle.requester.login} <small className="hint">lecture seule</small>
-            <span className={`run ${running ? 'on' : ''}`}>{running ? 'en cours…' : exitCode === null ? '' : `code ${exitCode}`}</span>
+            <span className={`run ${running ? 'on' : ''}`}>
+              {running ? 'en cours…' : exitCode === null ? '' : exitCode === 0 ? '🟢 au vert (code 0)' : `code ${exitCode}`}
+            </span>
           </h2>
           <pre className="terminal" ref={terminalEnd}>
             {terminal || 'Aucune sortie pour l’instant.'}
           </pre>
 
-          <h2>Chat</h2>
+          {/* LISTE DES PARTICIPANTS EN DIRECT */}
+          <h2>Participants ({members.length})</h2>
+          <div className="chips" style={{ marginBottom: '12px' }}>
+            {members.map((m, idx) => (
+              <span key={idx} className="chip on" style={{ fontSize: '0.8rem', padding: '4px 8px' }}>
+                @{m.login} ({m.role === 'demandeur' ? 'Demandeur' : 'Aidant'} · {m.client})
+              </span>
+            ))}
+          </div>
+
+          <h2>Chat de la salle</h2>
           <div className="chat" ref={chatEnd}>
             {chat.length === 0 && <p className="hint">Dis bonjour !</p>}
             {chat.map((m) => (
@@ -247,19 +364,84 @@ export function Salle({ token, user, requestId, onLeave }: { token: string; user
 }
 
 function SolutionReview({ token, requestId, solution, onChange }: { token: string; requestId: string; solution: SolutionDraft | null; onChange: (draft: SolutionDraft | null) => void }) {
-  useEffect(() => { void getSolutionDraft(token, requestId).then(onChange); }, [token, requestId, onChange]);
+  const [editing, setEditing] = useState(false);
+  const [causeText, setCauseText] = useState('');
+  const [fixText, setFixText] = useState('');
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    void getSolutionDraft(token, requestId).then((d) => {
+      onChange(d);
+      if (d) {
+        setCauseText(d.cause);
+        setFixText(d.fix);
+      }
+    });
+  }, [token, requestId, onChange]);
+
   if (!solution) return <p className="hint">Préparation de la fiche solution…</p>;
+
+  const handleSave = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSaving(true);
+    try {
+      const updated = await updateSolutionDraft(token, requestId, { cause: causeText, fix: fixText });
+      onChange(updated);
+      setEditing(false);
+    } catch {
+      // Ignorer
+    } finally {
+      setSaving(false);
+    }
+  };
+
   return (
     <section className="solution-review">
-      <h2>Fiche solution</h2>
-      <p className="hint">Brouillon généré, publication après accord des deux participants.</p>
+      <h2>Fiche solution (Brouillon)</h2>
+      <p className="hint">
+        🔒 Publication uniquement après validation du demandeur ET de l’aidant. Tant que la fiche n'est pas validée par les deux, elle reste strictement privée.
+      </p>
+
       <strong>{solution.title}</strong>
-      <p><b>Erreur :</b> {solution.error}</p>
-      <p><b>Cause :</b> {solution.cause}</p>
-      <p><b>Correction :</b> {solution.fix}</p>
-      <p className="hint">Demandeur: {solution.requesterApproved ? 'accord donné' : 'en attente'} · Aidant: {solution.helperApproved ? 'accord donné' : 'en attente'}</p>
-      {!solution.published && <button onClick={() => void approveSolutionDraft(token, requestId).then(onChange)}>Approuver la fiche</button>}
-      {solution.published && <p className="success-text">Fiche publiée dans la bibliothèque.</p>}
+      <p><b>Erreur :</b> <code>{solution.error}</code></p>
+
+      {editing ? (
+        <form onSubmit={handleSave} style={{ margin: '10px 0' }}>
+          <div>
+            <label className="hint">Cause identifiée</label>
+            <input value={causeText} onChange={(e) => setCauseText(e.target.value)} style={{ width: '100%', marginBottom: '8px' }} />
+          </div>
+          <div>
+            <label className="hint">Correction apportée</label>
+            <textarea value={fixText} onChange={(e) => setFixText(e.target.value)} rows={3} style={{ width: '100%', padding: '8px', borderRadius: '6px', background: '#0d1117', color: 'inherit' }} />
+          </div>
+          <div className="actions" style={{ marginTop: '8px' }}>
+            <button type="submit" disabled={saving}>{saving ? 'Enregistrement…' : 'Enregistrer le brouillon'}</button>
+            <button type="button" className="link" onClick={() => setEditing(false)}>Annuler</button>
+          </div>
+        </form>
+      ) : (
+        <>
+          <p><b>Cause :</b> {solution.cause}</p>
+          <p><b>Correction :</b> {solution.fix}</p>
+          {!solution.published && (
+            <button className="link" onClick={() => setEditing(true)} style={{ marginBottom: '8px' }}>
+              ✏️ Modifier la cause ou la correction
+            </button>
+          )}
+        </>
+      )}
+
+      <p className="hint">
+        Approbations : Demandeur {solution.requesterApproved ? '✅ accord donné' : '⏳ en attente'} · Aidant {solution.helperApproved ? '✅ accord donné' : '⏳ en attente'}
+      </p>
+
+      {!solution.published && (
+        <button onClick={() => void approveSolutionDraft(token, requestId).then(onChange)} style={{ marginTop: '6px' }}>
+          {solution.requesterApproved || solution.helperApproved ? 'Approuver également pour publier' : 'Approuver la fiche'}
+        </button>
+      )}
+      {solution.published && <p className="success-text" style={{ marginTop: '8px' }}>🎉 Fiche validée par les 2 participants et publiée dans la bibliothèque publique !</p>}
     </section>
   );
 }

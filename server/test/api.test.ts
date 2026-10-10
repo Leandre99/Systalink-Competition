@@ -150,5 +150,19 @@ describe('API SOS Dev', () => {
       await http().get(`/requests/${created.body.id}`).set('Authorization', `Bearer ${token}`).expect(404);
       expect(await ctx.store.purgeExpired(ctx.clock.now)).toEqual({ requests: 1, sessions: 0 });
     });
+
+    it('returns confirmed test points and badge in the passport after resolution', async () => {
+      const helper = await login('awa');
+      const requester = await login('koffi');
+      const created = await http().post('/requests').set('Authorization', `Bearer ${requester}`).send(payload()).expect(201);
+      const helperUser = (await http().get('/me').set('Authorization', `Bearer ${helper}`)).body;
+      await ctx.store.acceptRequest(created.body.id, helperUser.id, ctx.clock.now);
+      await ctx.store.resolveRequest(created.body.id, helperUser.id, ctx.clock.now);
+
+      const pass = await http().get('/me/passport').set('Authorization', `Bearer ${helper}`).expect(200);
+      expect(pass.body.helpsConfirmed).toBe(1);
+      expect(pass.body.points).toBe(10);
+      expect(pass.body.hasConfirmedBadge).toBe(true);
+    });
   });
 });
